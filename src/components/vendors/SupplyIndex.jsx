@@ -7,6 +7,7 @@ import {
   Globe,
   Users,
   Info,
+  EyeSlash,
   CaretDown,
   CreditCard,
   Coins,
@@ -31,7 +32,10 @@ import {
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si'
 import { FaPaypal, FaAlipay } from 'react-icons/fa'
 import BottomSheet from '../common/BottomSheet'
+import TextInput from '../common/inputs/TextInput'
 import { AnimatePresence, motion } from 'framer-motion'
+import { DEV_TEST_UID } from '../../utils/devSubscriptionOverride'
+import { DEV_COMMUNITY_EMAIL } from '../../utils/devSeedCommunities'
 
 const VenmoIcon = ({ size = 14, style, className }) => (
   <SiVenmo size={size} style={style} className={className} />
@@ -86,10 +90,11 @@ const CATEGORY_META = {
   groupbuy:      { label: 'Group Buy',     Icon: Users },
 }
 
-// Mock data — replace with API call when backend is ready.
+// Dev-only mock catalogue — NEVER shown to live users (Discover is public-facing).
 const INITIAL_MOCK_VENDORS = [
   {
     id: 'v-1',
+    isSeed: true,
     name: 'Peptide Sciences',
     type: 'domestic',
     upvotes: 184,
@@ -108,6 +113,7 @@ const INITIAL_MOCK_VENDORS = [
   },
   {
     id: 'v-2',
+    isSeed: true,
     name: 'Core Peptides',
     type: 'domestic',
     upvotes: 110,
@@ -126,6 +132,7 @@ const INITIAL_MOCK_VENDORS = [
   },
   {
     id: 'v-3',
+    isSeed: true,
     name: 'Limitless Life Nootropics',
     type: 'international',
     upvotes: 76,
@@ -144,6 +151,7 @@ const INITIAL_MOCK_VENDORS = [
   },
   {
     id: 'v-4',
+    isSeed: true,
     name: 'Amino Asylum',
     type: 'groupbuy',
     upvotes: 55,
@@ -162,6 +170,7 @@ const INITIAL_MOCK_VENDORS = [
   },
   {
     id: 'v-5',
+    isSeed: true,
     name: 'Swisschems',
     type: 'international',
     upvotes: 94,
@@ -179,6 +188,66 @@ const INITIAL_MOCK_VENDORS = [
     },
   },
 ]
+
+const SEED_VENDOR_IDS = new Set(INITIAL_MOCK_VENDORS.map(v => v.id))
+
+function isSeedVendor(v) {
+  return !!(v?.isSeed || SEED_VENDOR_IDS.has(v?.id))
+}
+
+/** Seeds only for local DEV or the primary test account — never live users. */
+function canShowSupplyIndexSeeds() {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) return true
+  try {
+    const raw = localStorage.getItem('tpprover_user')
+    if (!raw) return false
+    const user = JSON.parse(raw)
+    const uid = user?.uid || user?.id || ''
+    const email = String(user?.email || '').toLowerCase()
+    return uid === DEV_TEST_UID || email === DEV_COMMUNITY_EMAIL
+  } catch {
+    return false
+  }
+}
+
+function loadInitialVendors() {
+  const allowSeeds = canShowSupplyIndexSeeds()
+  const saved = loadJSON(STORAGE_KEY_DATA, null)
+
+  if (saved && Array.isArray(saved) && saved.length > 0) {
+    if (allowSeeds) {
+      const seedById = Object.fromEntries(INITIAL_MOCK_VENDORS.map(v => [v.id, v]))
+      return saved.map(v => {
+        const seed = seedById[v.id]
+        const savedTags = v.tags || {}
+        const savedTagTotal = Object.values(savedTags).reduce((s, n) => s + (Number(n) || 0), 0)
+        const tags = savedTagTotal > 0
+          ? { ...emptyTagCounts(), ...savedTags }
+          : { ...emptyTagCounts(), ...(seed?.tags || {}) }
+        return {
+          ...v,
+          isSeed: isSeedVendor(v) || !!seed,
+          type: v.type || seed?.type || 'domestic',
+          lastVoteAt: v.lastVoteAt || seed?.lastVoteAt || null,
+          payments: { ...emptyPaymentCounts(), ...(seed?.payments || {}), ...(v.payments || {}) },
+          tags,
+        }
+      })
+    }
+    // Live: drop mock catalogue entries; keep only user-submitted sources
+    return saved
+      .filter(v => !isSeedVendor(v))
+      .map(v => ({
+        ...v,
+        type: v.type || 'domestic',
+        lastVoteAt: v.lastVoteAt || null,
+        payments: { ...emptyPaymentCounts(), ...(v.payments || {}) },
+        tags: { ...emptyTagCounts(), ...(v.tags || {}) },
+      }))
+  }
+
+  return allowSeeds ? INITIAL_MOCK_VENDORS : []
+}
 
 const STORAGE_KEY_VOTES     = 'tpp_si_votes_v4'
 const STORAGE_KEY_TAGS      = 'tpp_si_tags_v4'
@@ -241,9 +310,9 @@ function touchLastVote(vendor) {
 function ModalStyleChip({ label, Icon, count, isSelected, onToggle, theme, variant = 'label' }) {
   const selectedBg = variant === 'payment' ? '#445952' : '#6B7F77'
   const selectedBorder = variant === 'payment' ? '#3B4240' : '#566D64'
-  const idleBg = theme.isDark ? '#1f2937' : '#f5f4f0'
-  const idleBorder = theme.isDark ? 'rgba(255,255,255,0.05)' : '#e8e6df'
-  const idleColor = theme.isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'
+  const idleBg = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'
+  const idleBorder = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  const idleColor = theme.isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.65)'
 
   return (
     <button
@@ -251,7 +320,7 @@ function ModalStyleChip({ label, Icon, count, isSelected, onToggle, theme, varia
       onClick={onToggle}
       title={label}
       aria-pressed={isSelected}
-      className="flex flex-col items-center justify-center p-1.5 rounded-lg touch-manipulation active:scale-95"
+      className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg touch-manipulation active:scale-95 min-w-0"
       style={{
         backgroundColor: isSelected ? selectedBg : idleBg,
         border: `1px solid ${isSelected ? selectedBorder : idleBorder}`,
@@ -262,13 +331,13 @@ function ModalStyleChip({ label, Icon, count, isSelected, onToggle, theme, varia
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <Icon size={14} className="mb-1" style={{ color: isSelected ? '#fff' : 'inherit' }} />
-      <span className="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">
+      <Icon size={20} className="shrink-0" style={{ color: isSelected ? '#fff' : 'inherit' }} />
+      <span className="text-sm font-semibold leading-tight truncate text-center">
         {label}
       </span>
       {typeof count === 'number' && (
         <span
-          className="text-[9px] tabular-nums mt-0.5 font-semibold"
+          className="text-xs tabular-nums font-semibold shrink-0"
           style={{ color: isSelected ? 'rgba(255,255,255,0.85)' : theme.textLight }}
         >
           {count}
@@ -324,8 +393,6 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
   const category = CATEGORY_META[vendor.type] || CATEGORY_META.domestic
   const CategoryIcon = category.Icon
   const payments = vendor.payments || emptyPaymentCounts()
-  const totalLabels = PRESET_TAGS.reduce((sum, t) => sum + (vendor.tags[t.id] || 0), 0)
-  const totalPayments = PRESET_PAYMENTS.reduce((sum, p) => sum + (payments[p.id] || 0), 0)
   const topPayments = [...PRESET_PAYMENTS]
     .map(p => ({ ...p, count: payments[p.id] || 0 }))
     .filter(p => p.count > 0)
@@ -441,22 +508,25 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
               type="button"
               onClick={() => setContributeOpen(v => !v)}
               aria-expanded={contributeOpen}
-              className="w-full flex items-center justify-between gap-2 py-2 touch-manipulation"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
+              className="w-full mt-2.5 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-[13px] font-semibold touch-manipulation transition-opacity active:opacity-90"
+              style={{
+                WebkitTapHighlightColor: 'transparent',
+                background: contributeOpen
+                  ? (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(47,59,58,0.08)')
+                  : theme.primary,
+                color: contributeOpen ? theme.text : '#fff',
+                border: contributeOpen ? `1px solid ${theme.border}` : '1px solid transparent',
+                boxShadow: contributeOpen
+                  ? 'none'
+                  : (theme.isDark ? '0 2px 10px rgba(0,0,0,0.35)' : '0 2px 10px rgba(47,59,58,0.18)'),
+              }}
             >
-              <span className="text-[11px]" style={{ color: theme.textLight }}>
-                <span className="font-semibold" style={{ color: theme.text }}>
-                  Vote Here!
-                </span>
-                <span className="opacity-70">
-                  {' '}· {totalLabels} labels · {totalPayments} payments
-                </span>
-              </span>
+              <span>{contributeOpen ? 'Hide votes' : 'Vote Here!'}</span>
               <CaretDown
                 size={14}
                 weight="bold"
                 style={{
-                  color: theme.textLight,
+                  color: contributeOpen ? theme.textLight : '#fff',
                   transform: contributeOpen ? 'rotate(180deg)' : 'none',
                   transition: 'transform 220ms ease',
                 }}
@@ -506,7 +576,7 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
                     </div>
 
                     {panelTab === 'labels' ? (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {PRESET_TAGS.map(tag => (
                           <ModalStyleChip
                             key={tag.id}
@@ -521,7 +591,7 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
                         ))}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         {PRESET_PAYMENTS.map(payment => (
                           <ModalStyleChip
                             key={payment.id}
@@ -552,6 +622,7 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
   const [type, setType] = useState('domestic')
   const [selectedTags, setSelectedTags] = useState({})
   const [selectedPayments, setSelectedPayments] = useState({})
+  const [metaTab, setMetaTab] = useState('labels') // 'labels' | 'payments'
 
   useEffect(() => {
     if (!open) {
@@ -559,6 +630,7 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
       setType('domestic')
       setSelectedTags({})
       setSelectedPayments({})
+      setMetaTab('labels')
     }
   }, [open])
 
@@ -611,24 +683,31 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
         </button>
       }
     >
-      <p className="text-xs mb-4 leading-relaxed" style={{ color: theme.textLight }}>
-        Fully anonymous. Community-reviewed through votes — no sponsorships, no affiliate links, no endorsements.
-      </p>
+      <div
+        className="flex items-start gap-2 mb-4 text-xs leading-relaxed px-3 py-2 rounded-xl"
+        style={{
+          background: theme.isDark ? `${theme.primary}20` : `${theme.primary}12`,
+          border: `1px solid ${theme.isDark ? `${theme.primary}40` : `${theme.primary}28`}`,
+          color: theme.textLight,
+        }}
+      >
+        <EyeSlash size={15} weight="duotone" className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+        <span>
+          Fully anonymous. Community-reviewed through votes — no sponsorships, no affiliate links, no endorsements.
+        </span>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <input
-          type="text"
+        <TextInput
+          label="Source Name"
           value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Source name (e.g. Peptide Sciences)"
+          onChange={setName}
+          placeholder="e.g. Peptide Sciences"
+          theme={theme}
+          outlined
           maxLength={80}
-          className="w-full text-sm px-3 py-2.5 rounded-xl outline-none"
-          style={{
-            background: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-            border: `1px solid ${theme.border}`,
-            color: theme.text,
-          }}
           autoFocus={open}
+          customTextColor={theme.isDark ? null : '#181A18'}
         />
 
         <div className="grid grid-cols-3 gap-1.5">
@@ -640,7 +719,7 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
                 key={key}
                 type="button"
                 onClick={() => setType(key)}
-                className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-[10px] font-medium touch-manipulation"
+                className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl text-xs font-medium touch-manipulation"
                 style={{
                   background: selected
                     ? (theme.isDark ? `${theme.primary}25` : `${theme.primary}18`)
@@ -650,7 +729,7 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
-                <Icon size={18} weight="duotone" />
+                <Icon size={22} weight="duotone" />
                 {meta.label}
               </button>
             )
@@ -658,41 +737,81 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
         </div>
 
         <div>
-          <p className="text-[11px] font-semibold mb-2" style={{ color: theme.text }}>
-            Labels <span className="font-normal" style={{ color: theme.textLight }}>(optional)</span>
-          </p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {PRESET_TAGS.map(tag => (
-              <ModalStyleChip
-                key={tag.id}
-                label={tag.label}
-                Icon={tag.Icon}
-                isSelected={!!selectedTags[tag.id]}
-                onToggle={() => toggleTag(tag.id)}
-                theme={theme}
-                variant="label"
-              />
-            ))}
+          <div
+            className="grid grid-cols-2 p-0.5 rounded-full mb-2.5"
+            style={{
+              background: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.07)',
+            }}
+          >
+            {[
+              { key: 'labels', label: 'Labels' },
+              { key: 'payments', label: 'Payments' },
+            ].map(tab => {
+              const active = metaTab === tab.key
+              const count = tab.key === 'labels'
+                ? Object.keys(selectedTags).length
+                : Object.keys(selectedPayments).length
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setMetaTab(tab.key)}
+                  className="py-1.5 rounded-full text-[11px] font-semibold touch-manipulation"
+                  style={{
+                    background: active ? theme.cardBackground : 'transparent',
+                    color: active ? theme.text : theme.textLight,
+                    boxShadow: active && !theme.isDark ? '0 1px 3px rgba(47,59,58,0.08)' : 'none',
+                    border: active ? `1px solid ${theme.border}` : '1px solid transparent',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  {tab.label}
+                  {count > 0 ? ` (${count})` : ''}
+                </button>
+              )
+            })}
           </div>
-        </div>
 
-        <div>
-          <p className="text-[11px] font-semibold mb-2" style={{ color: theme.text }}>
-            Payment methods <span className="font-normal" style={{ color: theme.textLight }}>(optional)</span>
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {PRESET_PAYMENTS.map(payment => (
-              <ModalStyleChip
-                key={payment.id}
-                label={payment.label}
-                Icon={payment.Icon}
-                isSelected={!!selectedPayments[payment.id]}
-                onToggle={() => togglePayment(payment.id)}
-                theme={theme}
-                variant="payment"
-              />
-            ))}
-          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={metaTab}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              style={{ overflow: 'hidden' }}
+            >
+              {metaTab === 'labels' ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {PRESET_TAGS.map(tag => (
+                    <ModalStyleChip
+                      key={tag.id}
+                      label={tag.label}
+                      Icon={tag.Icon}
+                      isSelected={!!selectedTags[tag.id]}
+                      onToggle={() => toggleTag(tag.id)}
+                      theme={theme}
+                      variant="label"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {PRESET_PAYMENTS.map(payment => (
+                    <ModalStyleChip
+                      key={payment.id}
+                      label={payment.label}
+                      Icon={payment.Icon}
+                      isSelected={!!selectedPayments[payment.id]}
+                      onToggle={() => togglePayment(payment.id)}
+                      theme={theme}
+                      variant="payment"
+                    />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </form>
     </BottomSheet>
@@ -702,38 +821,35 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
-  // Vendor list — seeded from mock data, then merged with any localStorage mutations
-  const [vendors, setVendors] = useState(() => {
-    const saved = loadJSON(STORAGE_KEY_DATA, null)
-    if (saved && Array.isArray(saved) && saved.length > 0) {
-      const seedById = Object.fromEntries(INITIAL_MOCK_VENDORS.map(v => [v.id, v]))
-      return saved.map(v => {
-        const seed = seedById[v.id]
-        const savedTags = v.tags || {}
-        const savedTagTotal = Object.values(savedTags).reduce((s, n) => s + (Number(n) || 0), 0)
-        const tags = savedTagTotal > 0
-          ? { ...emptyTagCounts(), ...savedTags }
-          : { ...emptyTagCounts(), ...(seed?.tags || {}) }
-        return {
-          ...v,
-          type: v.type || seed?.type || 'domestic',
-          lastVoteAt: v.lastVoteAt || seed?.lastVoteAt || null,
-          payments: { ...emptyPaymentCounts(), ...(seed?.payments || {}), ...(v.payments || {}) },
-          tags,
-        }
-      })
-    }
-    return INITIAL_MOCK_VENDORS
-  })
+  // Live users: community-submitted only. Mock catalogue is DEV / test-account only.
+  const [vendors, setVendors] = useState(() => loadInitialVendors())
 
   // User votes: { [vendorId]: 'up' | 'down' }
-  const [userVotes, setUserVotes] = useState(() => loadJSON(STORAGE_KEY_VOTES, {}))
+  const [userVotes, setUserVotes] = useState(() => {
+    const raw = loadJSON(STORAGE_KEY_VOTES, {})
+    if (canShowSupplyIndexSeeds()) return raw
+    const cleaned = { ...raw }
+    SEED_VENDOR_IDS.forEach(id => { delete cleaned[id] })
+    return cleaned
+  })
 
   // User tag selections: { [vendorId]: { [tagId]: true } }
-  const [userTags, setUserTags] = useState(() => loadJSON(STORAGE_KEY_TAGS, {}))
+  const [userTags, setUserTags] = useState(() => {
+    const raw = loadJSON(STORAGE_KEY_TAGS, {})
+    if (canShowSupplyIndexSeeds()) return raw
+    const cleaned = { ...raw }
+    SEED_VENDOR_IDS.forEach(id => { delete cleaned[id] })
+    return cleaned
+  })
 
   // User payment selections: { [vendorId]: { [paymentId]: true } }
-  const [userPayments, setUserPayments] = useState(() => loadJSON(STORAGE_KEY_PAYMENTS, {}))
+  const [userPayments, setUserPayments] = useState(() => {
+    const raw = loadJSON(STORAGE_KEY_PAYMENTS, {})
+    if (canShowSupplyIndexSeeds()) return raw
+    const cleaned = { ...raw }
+    SEED_VENDOR_IDS.forEach(id => { delete cleaned[id] })
+    return cleaned
+  })
 
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [sortBy, setSortBy] = useState('score') // 'score' | 'name'
@@ -743,8 +859,11 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
     openSuggestModal: () => setShowSubmitModal(true),
   }))
 
-  // Persist whenever vendors change
-  useEffect(() => { saveJSON(STORAGE_KEY_DATA, vendors) }, [vendors])
+  // Persist whenever vendors change (never re-persist seeds for live users)
+  useEffect(() => {
+    const allowSeeds = canShowSupplyIndexSeeds()
+    saveJSON(STORAGE_KEY_DATA, allowSeeds ? vendors : vendors.filter(v => !isSeedVendor(v)))
+  }, [vendors])
   useEffect(() => { saveJSON(STORAGE_KEY_VOTES, userVotes) }, [userVotes])
   useEffect(() => { saveJSON(STORAGE_KEY_TAGS, userTags) }, [userTags])
   useEffect(() => { saveJSON(STORAGE_KEY_PAYMENTS, userPayments) }, [userPayments])
