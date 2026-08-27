@@ -3,12 +3,12 @@ import {
   ArrowFatUp,
   ArrowFatDown,
   Plus,
+  Package,
   Storefront,
   Globe,
   Users,
   Info,
   EyeSlash,
-  CaretDown,
   CreditCard,
   Coins,
   Bank,
@@ -28,14 +28,55 @@ import {
   UserMinus,
   Prohibit,
   Gauge,
+  Browser,
+  CircleNotch,
+  HandFist,
 } from '@phosphor-icons/react'
 import { SiZelle, SiCashapp, SiVenmo } from 'react-icons/si'
 import { FaPaypal, FaAlipay } from 'react-icons/fa'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '../../config/firebase'
 import BottomSheet from '../common/BottomSheet'
 import TextInput from '../common/inputs/TextInput'
 import { AnimatePresence, motion } from 'framer-motion'
+import { executeRecaptcha } from '../../utils/recaptcha'
+import { openExternalUrl } from '../../utils/platform'
 import { DEV_TEST_UID } from '../../utils/devSubscriptionOverride'
 import { DEV_COMMUNITY_EMAIL } from '../../utils/devSeedCommunities'
+
+const DISCOVER_WEB_ORIGIN = 'https://thepepplanner.app'
+
+const WEBSITE_RE = /^https?:\/\/.+/i
+
+function normalizeWebsiteInput(raw) {
+  const trimmed = String(raw || '').trim()
+  if (!trimmed) return ''
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  return WEBSITE_RE.test(withProtocol) ? withProtocol : ''
+}
+
+function toast(type, message) {
+  window.dispatchEvent(new CustomEvent('tpp:toast', { detail: { type, message } }))
+}
+
+const TITLE_CASE_SMALL = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'via', 'with'])
+
+/** Title-case vendor names for display (keeps small words lowercase mid-phrase). */
+function formatVendorName(name) {
+  const raw = String(name || '').trim().replace(/\s+/g, ' ')
+  if (!raw) return ''
+  return raw
+    .split(' ')
+    .map((word, i) => {
+      const lower = word.toLowerCase()
+      if (i > 0 && TITLE_CASE_SMALL.has(lower)) return lower
+      // Preserve all-caps brands (GLP, USA) and mixed like "PGB"
+      if (/^[A-Z0-9]{2,}$/.test(word) && word === word.toUpperCase()) return word
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(' ')
+}
 
 const VenmoIcon = ({ size = 14, style, className }) => (
   <SiVenmo size={size} style={style} className={className} />
@@ -44,7 +85,7 @@ const VenmoIcon = ({ size = 14, style, className }) => (
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PRESET_TAGS = [
-  // Matches VendorDetailsModal labelOptions + icons
+  // Matches VendorCard GOOD / BAD / neutral chip groups
   { id: 'reliable',       label: 'Reliable',        short: 'Reliable',  type: 'positive', Icon: CheckCircle },
   { id: 'vetted',         label: 'Vetted',          short: 'Vetted',    type: 'positive', Icon: SealCheck },
   { id: 'fast_shipping',  label: 'Fast Shipping',   short: 'Fast Ship', type: 'positive', Icon: Rabbit },
@@ -54,7 +95,7 @@ const PRESET_TAGS = [
   { id: 'oils',           label: 'Oils',            short: 'Oils',      type: 'neutral',  Icon: Wine },
   { id: 'pricey',         label: 'Pricey',          short: 'Pricey',    type: 'neutral',  Icon: TrendUp },
   { id: 'reshipper',      label: 'Reshipper',       short: 'Reship',    type: 'positive', Icon: Boat },
-  { id: 'slow_shipping',  label: 'Slow Shipping',   short: 'Slow Ship', type: 'negative', Icon: HourglassHigh },
+  { id: 'slow_shipping',  label: 'Slow Shipping',   short: 'Slow Ship', type: 'neutral',  Icon: HourglassHigh },
   { id: 'bad_test',       label: 'Bad Test',        short: 'Bad Test',  type: 'negative', Icon: EggCrack },
   { id: 'bad_packaging',  label: 'Bad Packaging',   short: 'Packaging', type: 'negative', Icon: SealWarning },
   { id: 'broken_vials',   label: 'Broken Vials',    short: 'Vials',     type: 'negative', Icon: Warning },
@@ -83,11 +124,26 @@ function emptyPaymentCounts() {
   return Object.fromEntries(PRESET_PAYMENTS.map(p => [p.id, 0]))
 }
 
-// Matches Vendors page categories: Storefront / Globe / Users
+function mapFirestoreVendor(docSnap) {
+  const data = docSnap.data() || {}
+  const lastVoteAt = data.lastVoteAt?.toDate?.()
+    ? data.lastVoteAt.toDate().toISOString()
+    : (typeof data.lastVoteAt === 'string' ? data.lastVoteAt : null)
+  return {
+    ...data,
+    id: docSnap.id,
+    lastVoteAt,
+    tags: { ...emptyTagCounts(), ...(data.tags || {}) },
+    payments: { ...emptyPaymentCounts(), ...(data.payments || {}) },
+  }
+}
+
+// Matches Vendors page categories + Supplies (Discover)
 const CATEGORY_META = {
   domestic:      { label: 'Domestic',      Icon: Storefront },
   international: { label: 'International', Icon: Globe },
   groupbuy:      { label: 'Group Buy',     Icon: Users },
+  supplies:      { label: 'Supplies',      Icon: Package },
 }
 
 // Dev-only mock catalogue — NEVER shown to live users (Discover is public-facing).
@@ -191,10 +247,6 @@ const INITIAL_MOCK_VENDORS = [
 
 const SEED_VENDOR_IDS = new Set(INITIAL_MOCK_VENDORS.map(v => v.id))
 
-function isSeedVendor(v) {
-  return !!(v?.isSeed || SEED_VENDOR_IDS.has(v?.id))
-}
-
 /** Seeds only for local DEV or the primary test account — never live users. */
 function canShowSupplyIndexSeeds() {
   if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) return true
@@ -210,49 +262,11 @@ function canShowSupplyIndexSeeds() {
   }
 }
 
-function loadInitialVendors() {
-  const allowSeeds = canShowSupplyIndexSeeds()
-  const saved = loadJSON(STORAGE_KEY_DATA, null)
-
-  if (saved && Array.isArray(saved) && saved.length > 0) {
-    if (allowSeeds) {
-      const seedById = Object.fromEntries(INITIAL_MOCK_VENDORS.map(v => [v.id, v]))
-      return saved.map(v => {
-        const seed = seedById[v.id]
-        const savedTags = v.tags || {}
-        const savedTagTotal = Object.values(savedTags).reduce((s, n) => s + (Number(n) || 0), 0)
-        const tags = savedTagTotal > 0
-          ? { ...emptyTagCounts(), ...savedTags }
-          : { ...emptyTagCounts(), ...(seed?.tags || {}) }
-        return {
-          ...v,
-          isSeed: isSeedVendor(v) || !!seed,
-          type: v.type || seed?.type || 'domestic',
-          lastVoteAt: v.lastVoteAt || seed?.lastVoteAt || null,
-          payments: { ...emptyPaymentCounts(), ...(seed?.payments || {}), ...(v.payments || {}) },
-          tags,
-        }
-      })
-    }
-    // Live: drop mock catalogue entries; keep only user-submitted sources
-    return saved
-      .filter(v => !isSeedVendor(v))
-      .map(v => ({
-        ...v,
-        type: v.type || 'domestic',
-        lastVoteAt: v.lastVoteAt || null,
-        payments: { ...emptyPaymentCounts(), ...(v.payments || {}) },
-        tags: { ...emptyTagCounts(), ...(v.tags || {}) },
-      }))
-  }
-
-  return allowSeeds ? INITIAL_MOCK_VENDORS : []
-}
-
 const STORAGE_KEY_VOTES     = 'tpp_si_votes_v4'
 const STORAGE_KEY_TAGS      = 'tpp_si_tags_v4'
 const STORAGE_KEY_PAYMENTS  = 'tpp_si_payments_v4'
-const STORAGE_KEY_DATA      = 'tpp_si_data_v4'
+const STORAGE_KEY_DEV_LOCAL = 'tpp_si_dev_local_v1'
+const STORAGE_KEY_VIEW_MODE = 'tpp_si_view_mode_v1'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -269,20 +283,6 @@ function saveJSON(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch { /* ignore quota errors */ }
-}
-
-function getTopTag(tags) {
-  let topId = null
-  let topCount = 0
-  PRESET_TAGS.forEach(({ id }) => {
-    if ((tags[id] || 0) > topCount) {
-      topCount = tags[id] || 0
-      topId = id
-    }
-  })
-  if (!topId) return null
-  const tag = PRESET_TAGS.find(t => t.id === topId)
-  return { ...tag, count: topCount }
 }
 
 function netScore(v) {
@@ -337,10 +337,17 @@ function ModalStyleChip({ label, Icon, count, isSelected, onToggle, theme, varia
       </span>
       {typeof count === 'number' && (
         <span
-          className="text-xs tabular-nums font-semibold shrink-0"
-          style={{ color: isSelected ? 'rgba(255,255,255,0.85)' : theme.textLight }}
+          className="text-[10px] tabular-nums font-bold shrink-0 rounded-full px-1.5 py-0.5 leading-none"
+          aria-label={`${count} votes`}
+          title={`${count} votes`}
+          style={{
+            color: isSelected ? '#fff' : theme.textLight,
+            background: isSelected
+              ? 'rgba(255,255,255,0.22)'
+              : (theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(47,59,58,0.1)'),
+          }}
         >
-          {count}
+          ×{count}
         </span>
       )}
     </button>
@@ -350,7 +357,7 @@ function ModalStyleChip({ label, Icon, count, isSelected, onToggle, theme, varia
 function VoteRail({ userVote, score, positive, scoreColor, onVote, vendorId, theme }) {
   const idle = theme.isDark ? '#71717a' : '#a1a1aa'
   return (
-    <div className="flex flex-col items-center gap-0.5 shrink-0 pt-0.5">
+    <div className="flex flex-col items-center justify-center gap-0.5 shrink-0 self-center">
       <button
         type="button"
         aria-label="Upvote"
@@ -384,33 +391,50 @@ function VoteRail({ userVote, score, positive, scoreColor, onVote, vendorId, the
   )
 }
 
-function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagToggle, onPaymentToggle, theme }) {
+function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagToggle, onPaymentToggle, onDeepDive, deepDiveBusy, theme }) {
   const [contributeOpen, setContributeOpen] = useState(false)
   const [panelTab, setPanelTab] = useState('labels') // 'labels' | 'payments'
   const score    = netScore(vendor)
-  const topTag   = getTopTag(vendor.tags)
   const positive = score >= 0
   const category = CATEGORY_META[vendor.type] || CATEGORY_META.domestic
   const CategoryIcon = category.Icon
   const payments = vendor.payments || emptyPaymentCounts()
-  const topPayments = [...PRESET_PAYMENTS]
-    .map(p => ({ ...p, count: payments[p.id] || 0 }))
-    .filter(p => p.count > 0)
+  const logoSrc = vendor.logoUrl || vendor.logoFallback || ''
+  const topLabels = PRESET_TAGS
+    .map(t => {
+      const aggregate = vendor.tags?.[t.id] || 0
+      // Always surface labels the user just voted for, even if aggregate was stale
+      const count = aggregate > 0 ? aggregate : (userTags?.[t.id] ? 1 : 0)
+      return { ...t, count }
+    })
+    .filter(t => t.count > 0)
     .sort((a, b) => b.count - a.count)
-    .slice(0, 4)
 
   const scoreColor = positive
     ? (theme.isDark ? '#6ee7b7' : '#059669')
     : (theme.isDark ? '#fdba74' : '#d97706')
 
   const divider = theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.08)'
-  const TopIcon = topTag?.Icon
-  const topAccent = !topTag ? null
-    : topTag.type === 'positive'
-      ? { bg: theme.isDark ? 'rgba(52,211,153,0.15)' : 'rgba(5,150,105,0.12)', border: theme.isDark ? 'rgba(52,211,153,0.35)' : 'rgba(5,150,105,0.3)', color: theme.isDark ? '#6ee7b7' : '#059669' }
-      : topTag.type === 'negative'
-        ? { bg: theme.isDark ? 'rgba(251,146,60,0.15)' : 'rgba(217,119,6,0.12)', border: theme.isDark ? 'rgba(251,146,60,0.35)' : 'rgba(217,119,6,0.3)', color: theme.isDark ? '#fdba74' : '#d97706' }
-        : { bg: theme.isDark ? `${theme.primary}22` : `${theme.primary}15`, border: `${theme.primary}40`, color: theme.primary }
+
+  // Match VendorCard.jsx chip colors exactly
+  const labelAccent = (type) => {
+    if (theme.isDark) {
+      if (type === 'positive') {
+        return { bg: 'rgba(60, 78, 58, 0.4)', border: 'rgba(60, 78, 58, 0.55)', color: '#dcfce7' }
+      }
+      if (type === 'negative') {
+        return { bg: 'rgba(109, 43, 44, 0.4)', border: 'rgba(109, 43, 44, 0.55)', color: '#fee2e2' }
+      }
+      return { bg: 'rgba(68, 104, 121, 0.4)', border: 'rgba(68, 104, 121, 0.55)', color: '#dbeafe' }
+    }
+    if (type === 'positive') {
+      return { bg: 'rgba(96, 124, 92, 0.15)', border: 'rgba(96, 124, 92, 0.28)', color: '#3c4e3a' }
+    }
+    if (type === 'negative') {
+      return { bg: 'rgba(161, 77, 77, 0.15)', border: 'rgba(161, 77, 77, 0.28)', color: '#6D2B2C' }
+    }
+    return { bg: 'rgba(173, 195, 209, 0.2)', border: 'rgba(173, 195, 209, 0.45)', color: '#1e3a5f' }
+  }
 
   return (
     <div
@@ -420,6 +444,33 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
         border: `1px solid ${theme.border}`,
       }}
     >
+      {/* Row 1: full-width logo banner */}
+      <div
+        className="w-full h-28 flex items-center justify-center"
+        style={{
+          background: theme.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+          borderBottom: `1px solid ${divider}`,
+        }}
+      >
+        {logoSrc ? (
+          <img
+            src={logoSrc}
+            alt=""
+            className="max-h-[88px] max-w-[85%] w-auto object-contain"
+            onError={(e) => {
+              if (vendor.logoFallback && e.currentTarget.src !== vendor.logoFallback) {
+                e.currentTarget.src = vendor.logoFallback
+              } else {
+                e.currentTarget.style.display = 'none'
+              }
+            }}
+          />
+        ) : (
+          <CategoryIcon size={40} weight="duotone" style={{ color: theme.primary, opacity: 0.7 }} />
+        )}
+      </div>
+
+      {/* Row 2: vote + name / details */}
       <div className="flex gap-3 p-3.5">
         <VoteRail
           userVote={userVote}
@@ -434,31 +485,9 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-[15px] leading-snug truncate" style={{ color: theme.text }}>
-                {vendor.name}
+              <p className="font-semibold text-lg leading-tight truncate" style={{ color: theme.text }}>
+                {formatVendorName(vendor.name)}
               </p>
-              {topTag && topAccent && (
-                <div className="mt-1 flex items-center gap-1.5 min-w-0">
-                  <span
-                    className="text-[10px] font-semibold uppercase tracking-wide shrink-0"
-                    style={{ color: theme.textLight }}
-                  >
-                    Top label
-                  </span>
-                  <span
-                    className="inline-flex items-center gap-1.5 min-w-0 max-w-full text-[11px] font-semibold px-2 py-0.5 rounded-lg"
-                    style={{
-                      background: topAccent.bg,
-                      border: `1px solid ${topAccent.border}`,
-                      color: topAccent.color,
-                    }}
-                  >
-                    {TopIcon && <TopIcon size={13} weight="duotone" className="shrink-0" />}
-                    <span className="truncate">{topTag.label}</span>
-                    <span className="tabular-nums opacity-80 shrink-0">{topTag.count}</span>
-                  </span>
-                </div>
-              )}
             </div>
             <div className="flex flex-col items-end gap-0.5 shrink-0">
               <span
@@ -478,60 +507,85 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
             </div>
           </div>
 
-          {topPayments.length > 0 && (
+          {topLabels.length > 0 && (
             <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-              {topPayments.map(p => {
-                const Icon = p.Icon
+              {topLabels.map(tag => {
+                const Icon = tag.Icon
+                const accent = labelAccent(tag.type)
                 return (
                   <span
-                    key={p.id}
-                    className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg font-medium"
-                    title={p.label}
+                    key={tag.id}
+                    className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg font-semibold"
+                    title={tag.label}
                     style={{
-                      color: theme.text,
-                      background: theme.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(47,59,58,0.05)',
-                      border: `1px solid ${theme.border}`,
+                      color: accent.color,
+                      background: accent.bg,
+                      border: `1px solid ${accent.border}`,
                     }}
                   >
-                    <Icon size={14} style={{ color: theme.primary }} />
-                    <span className="leading-none">{p.label}</span>
-                    <span className="tabular-nums leading-none" style={{ color: theme.textLight }}>{p.count}</span>
+                    <Icon size={18} weight="duotone" className="shrink-0" />
+                    <span className="leading-none">{tag.short || tag.label}</span>
+                    <span
+                      className="tabular-nums leading-none text-[10px] font-bold rounded-full px-1.5 py-0.5"
+                      aria-label={`${tag.count} votes`}
+                      style={{
+                        color: accent.color,
+                        background: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.55)',
+                      }}
+                    >
+                      ×{tag.count}
+                    </span>
                   </span>
                 )
               })}
             </div>
           )}
 
-          {/* Inline expand — no modal, tap to vote */}
+          {/* Vote + Deep Dive — no contact sheet in-app */}
           <div className="mt-2.5" style={{ borderTop: `1px solid ${divider}` }}>
-            <button
-              type="button"
-              onClick={() => setContributeOpen(v => !v)}
-              aria-expanded={contributeOpen}
-              className="w-full mt-2.5 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-[13px] font-semibold touch-manipulation transition-opacity active:opacity-90"
-              style={{
-                WebkitTapHighlightColor: 'transparent',
-                background: contributeOpen
-                  ? (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(47,59,58,0.08)')
-                  : theme.primary,
-                color: contributeOpen ? theme.text : '#fff',
-                border: contributeOpen ? `1px solid ${theme.border}` : '1px solid transparent',
-                boxShadow: contributeOpen
-                  ? 'none'
-                  : (theme.isDark ? '0 2px 10px rgba(0,0,0,0.35)' : '0 2px 10px rgba(47,59,58,0.18)'),
-              }}
-            >
-              <span>{contributeOpen ? 'Hide votes' : 'Vote Here!'}</span>
-              <CaretDown
-                size={14}
-                weight="bold"
+            <div className="mt-2.5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setContributeOpen(v => !v)}
+                aria-expanded={contributeOpen}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-[12px] font-semibold touch-manipulation transition-opacity active:opacity-90"
                 style={{
-                  color: contributeOpen ? theme.textLight : '#fff',
-                  transform: contributeOpen ? 'rotate(180deg)' : 'none',
-                  transition: 'transform 220ms ease',
+                  WebkitTapHighlightColor: 'transparent',
+                  background: contributeOpen
+                    ? (theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(47,59,58,0.08)')
+                    : theme.primary,
+                  color: contributeOpen ? theme.text : '#fff',
+                  border: contributeOpen ? `1px solid ${theme.border}` : '1px solid transparent',
+                  boxShadow: contributeOpen
+                    ? 'none'
+                    : (theme.isDark ? '0 2px 10px rgba(0,0,0,0.35)' : '0 2px 10px rgba(47,59,58,0.18)'),
                 }}
-              />
-            </button>
+              >
+                <HandFist size={16} weight="duotone" />
+                <span>{contributeOpen ? 'Hide votes' : 'Your Vote'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onDeepDive?.(vendor)}
+                disabled={!!deepDiveBusy}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-[12px] font-semibold touch-manipulation transition-opacity active:opacity-90 disabled:opacity-50"
+                style={{
+                  WebkitTapHighlightColor: 'transparent',
+                  background: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.06)',
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`,
+                }}
+                title="Open website details on the Discover web page"
+              >
+                {deepDiveBusy ? (
+                  <CircleNotch size={18} className="animate-spin" />
+                ) : (
+                  <Browser size={18} weight="duotone" style={{ color: theme.primary }} />
+                )}
+                <span>Discover More</span>
+              </button>
+            </div>
 
             <AnimatePresence initial={false}>
               {contributeOpen && (
@@ -617,20 +671,26 @@ function VendorCard({ vendor, userVote, userTags, userPayments, onVote, onTagTog
   )
 }
 
-function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
+function SubmitVendorSheet({ open, theme, onClose, onSubmit, devMode = false }) {
   const [name, setName] = useState('')
+  const [website, setWebsite] = useState('')
   const [type, setType] = useState('domestic')
   const [selectedTags, setSelectedTags] = useState({})
   const [selectedPayments, setSelectedPayments] = useState({})
   const [metaTab, setMetaTab] = useState('labels') // 'labels' | 'payments'
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!open) {
       setName('')
+      setWebsite('')
       setType('domestic')
       setSelectedTags({})
       setSelectedPayments({})
       setMetaTab('labels')
+      setSubmitting(false)
+      setError('')
     }
   }, [open])
 
@@ -652,34 +712,47 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
     })
   }
 
-  const handleSubmit = (e) => {
+  const websiteNormalized = normalizeWebsiteInput(website)
+  const canSubmit = !!name.trim() && !!websiteNormalized && !submitting
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const trimmed = name.trim()
-    if (!trimmed) return
-    onSubmit(trimmed, type, Object.keys(selectedTags), Object.keys(selectedPayments))
-    onClose()
+    if (!trimmed || !websiteNormalized || submitting) return
+    setSubmitting(true)
+    setError('')
+    try {
+      await onSubmit(trimmed, type, Object.keys(selectedTags), Object.keys(selectedPayments), websiteNormalized)
+      onClose()
+    } catch (err) {
+      const msg = err?.message || 'Could not submit. Please try again.'
+      setError(msg)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
     <BottomSheet
       open={open}
       onClose={onClose}
-      title="Suggest a Source"
+      title={devMode ? 'DEV Suggest (local only)' : 'Suggest a Source'}
       theme={theme}
       fitContent
       footer={
         <button
           type="button"
-          disabled={!name.trim()}
+          disabled={!canSubmit}
           onClick={handleSubmit}
-          className="w-full py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40 touch-manipulation"
+          className="w-full py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-40 touch-manipulation inline-flex items-center justify-center gap-2"
           style={{
-            background: theme.primary,
+            background: devMode ? '#b45309' : theme.primary,
             color: theme.textOnPrimary || '#fff',
             WebkitTapHighlightColor: 'transparent',
           }}
         >
-          Submit Anonymously
+          {submitting ? <CircleNotch size={16} className="animate-spin" /> : null}
+          {submitting ? 'Submitting…' : (devMode ? 'Save Locally (DEV)' : 'Submit Anonymously')}
         </button>
       }
     >
@@ -691,11 +764,26 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
           color: theme.textLight,
         }}
       >
-        <EyeSlash size={15} weight="duotone" className="shrink-0 mt-0.5" style={{ color: theme.primary }} />
+        <EyeSlash size={15} weight="duotone" className="shrink-0 mt-0.5" style={{ color: devMode ? '#b45309' : theme.primary }} />
         <span>
-          Fully anonymous. Community-reviewed through votes — no sponsorships, no affiliate links, no endorsements.
+          {devMode
+            ? 'DEV mode: stays on this device only. Not sent to Firestore or other users.'
+            : 'Fully anonymous. Website URL required (Discord invite links OK). Reviewed before it appears — no sponsorships, no affiliate links.'}
         </span>
       </div>
+
+      {error && (
+        <div
+          className="mb-3 text-xs px-3 py-2 rounded-xl"
+          style={{
+            background: theme.isDark ? 'rgba(251,146,60,0.12)' : 'rgba(217,119,6,0.1)',
+            color: theme.isDark ? '#fdba74' : '#b45309',
+            border: `1px solid ${theme.isDark ? 'rgba(251,146,60,0.3)' : 'rgba(217,119,6,0.25)'}`,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <TextInput
@@ -710,7 +798,18 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
           customTextColor={theme.isDark ? null : '#181A18'}
         />
 
-        <div className="grid grid-cols-3 gap-1.5">
+        <TextInput
+          label="Website URL"
+          value={website}
+          onChange={setWebsite}
+          placeholder="https://example.com or discord.gg/invite"
+          theme={theme}
+          outlined
+          maxLength={300}
+          customTextColor={theme.isDark ? null : '#181A18'}
+        />
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           {Object.entries(CATEGORY_META).map(([key, meta]) => {
             const Icon = meta.Icon
             const selected = type === key
@@ -821,10 +920,10 @@ function SubmitVendorSheet({ open, theme, onClose, onSubmit }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
-  // Live users: community-submitted only. Mock catalogue is DEV / test-account only.
-  const [vendors, setVendors] = useState(() => loadInitialVendors())
+  const [cloudVendors, setCloudVendors] = useState([])
+  const [cloudReady, setCloudReady] = useState(false)
+  const [vendors, setVendors] = useState(() => (canShowSupplyIndexSeeds() ? INITIAL_MOCK_VENDORS : []))
 
-  // User votes: { [vendorId]: 'up' | 'down' }
   const [userVotes, setUserVotes] = useState(() => {
     const raw = loadJSON(STORAGE_KEY_VOTES, {})
     if (canShowSupplyIndexSeeds()) return raw
@@ -833,7 +932,6 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
     return cleaned
   })
 
-  // User tag selections: { [vendorId]: { [tagId]: true } }
   const [userTags, setUserTags] = useState(() => {
     const raw = loadJSON(STORAGE_KEY_TAGS, {})
     if (canShowSupplyIndexSeeds()) return raw
@@ -842,7 +940,6 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
     return cleaned
   })
 
-  // User payment selections: { [vendorId]: { [paymentId]: true } }
   const [userPayments, setUserPayments] = useState(() => {
     const raw = loadJSON(STORAGE_KEY_PAYMENTS, {})
     if (canShowSupplyIndexSeeds()) return raw
@@ -851,126 +948,294 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
     return cleaned
   })
 
+  const isDevDiscover = canShowSupplyIndexSeeds()
   const [showSubmitModal, setShowSubmitModal] = useState(false)
-  const [sortBy, setSortBy] = useState('score') // 'score' | 'name'
-  const [categoryFilter, setCategoryFilter] = useState('all') // 'all' | 'domestic' | 'international' | 'groupbuy'
+  const [submitMode, setSubmitMode] = useState('live') // 'live' | 'dev'
+  const [viewMode, setViewMode] = useState(() => {
+    if (!canShowSupplyIndexSeeds()) return 'live'
+    const saved = loadJSON(STORAGE_KEY_VIEW_MODE, 'live')
+    return saved === 'dev' ? 'dev' : 'live'
+  })
+  const [localDevVendors, setLocalDevVendors] = useState(() => {
+    if (!canShowSupplyIndexSeeds()) return []
+    const saved = loadJSON(STORAGE_KEY_DEV_LOCAL, [])
+    return Array.isArray(saved) ? saved : []
+  })
+  const [openingWeb, setOpeningWeb] = useState(false)
+  const [deepDiveVendorId, setDeepDiveVendorId] = useState(null)
+  const [sortBy, setSortBy] = useState('score')
+  const [categoryFilter, setCategoryFilter] = useState('domestic')
 
   useImperativeHandle(ref, () => ({
-    openSuggestModal: () => setShowSubmitModal(true),
+    openSuggestModal: () => {
+      setSubmitMode(isDevDiscover && viewMode === 'dev' ? 'dev' : 'live')
+      setShowSubmitModal(true)
+    },
   }))
 
-  // Persist whenever vendors change (never re-persist seeds for live users)
+  useEffect(() => {
+    const q = query(collection(db, 'community_vendors'), where('status', '==', 'approved'))
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setCloudVendors(snap.docs.map(mapFirestoreVendor))
+        setCloudReady(true)
+      },
+      (err) => {
+        // Rules/functions not deployed yet, or signed-out — fall back to seeds/local DEV data.
+        console.warn('Discover Firestore listener failed:', err?.code || err?.message || err)
+        setCloudVendors([])
+        setCloudReady(true)
+      }
+    )
+    return unsub
+  }, [])
+
   useEffect(() => {
     const allowSeeds = canShowSupplyIndexSeeds()
-    saveJSON(STORAGE_KEY_DATA, allowSeeds ? vendors : vendors.filter(v => !isSeedVendor(v)))
-  }, [vendors])
+    const cloudIds = new Set(cloudVendors.map(v => v.id))
+    const localById = Object.fromEntries(localDevVendors.map(v => [v.id, v]))
+
+    // Live view: approved Firestore vendors only (what real users see)
+    if (!allowSeeds || viewMode === 'live') {
+      setVendors(cloudVendors)
+      return
+    }
+
+    // DEV view: seeds + local-only suggestions (no live cloud mix)
+    const seedList = INITIAL_MOCK_VENDORS
+    const seedsMerged = seedList.map(v => {
+      const overlay = localById[v.id]
+      if (!overlay) return v
+      return {
+        ...v,
+        ...overlay,
+        id: v.id,
+        isSeed: true,
+        tags: { ...emptyTagCounts(), ...(v.tags || {}), ...(overlay.tags || {}) },
+        payments: { ...emptyPaymentCounts(), ...(v.payments || {}), ...(overlay.payments || {}) },
+      }
+    })
+
+    const localOnly = localDevVendors.filter(v => !cloudIds.has(v.id) && !SEED_VENDOR_IDS.has(v.id))
+    setVendors([...seedsMerged, ...localOnly])
+  }, [cloudVendors, localDevVendors, viewMode])
+
   useEffect(() => { saveJSON(STORAGE_KEY_VOTES, userVotes) }, [userVotes])
   useEffect(() => { saveJSON(STORAGE_KEY_TAGS, userTags) }, [userTags])
   useEffect(() => { saveJSON(STORAGE_KEY_PAYMENTS, userPayments) }, [userPayments])
+  useEffect(() => {
+    if (!isDevDiscover) return
+    saveJSON(STORAGE_KEY_DEV_LOCAL, localDevVendors)
+  }, [localDevVendors, isDevDiscover])
+  useEffect(() => {
+    if (!isDevDiscover) return
+    saveJSON(STORAGE_KEY_VIEW_MODE, viewMode)
+  }, [viewMode, isDevDiscover])
 
-  // Vote: toggle if same, switch if different, remove if none
+  const isCloudVendor = useCallback((vendorId) => {
+    return cloudVendors.some(v => v.id === vendorId)
+  }, [cloudVendors])
+
+  /** Persist non-cloud vote/label changes into localDevVendors so the merge effect keeps them. */
+  const patchNonCloudVendor = useCallback((vendorId, updater) => {
+    setLocalDevVendors(prev => {
+      const existing = prev.find(v => v.id === vendorId)
+      const fromList = vendors.find(v => v.id === vendorId)
+      const seed = INITIAL_MOCK_VENDORS.find(v => v.id === vendorId)
+      const base = existing || fromList || seed
+      if (!base) return prev
+      const normalized = {
+        ...base,
+        tags: { ...emptyTagCounts(), ...(base.tags || {}) },
+        payments: { ...emptyPaymentCounts(), ...(base.payments || {}) },
+      }
+      const next = updater(normalized)
+      if (existing) return prev.map(v => (v.id === vendorId ? next : v))
+      return [...prev, { ...next, isDevLocal: true }]
+    })
+  }, [vendors])
+
   const handleVote = useCallback((vendorId, direction) => {
     setUserVotes(prev => {
       const current = prev[vendorId] ?? null
-      const next    = current === direction ? null : direction
+      const next = current === direction ? null : direction
       const updated = { ...prev, [vendorId]: next }
-
-      setVendors(vs => vs.map(v => {
-        if (v.id !== vendorId) return v
-        let { upvotes, downvotes } = v
-
-        // Undo current vote
-        if (current === 'up')   upvotes   = Math.max(0, upvotes - 1)
-        if (current === 'down') downvotes = Math.max(0, downvotes - 1)
-
-        // Apply next vote
-        if (next === 'up')   upvotes   += 1
-        if (next === 'down') downvotes += 1
-
-        return { ...touchLastVote(v), upvotes, downvotes }
-      }))
-
+      if (!isCloudVendor(vendorId)) {
+        patchNonCloudVendor(vendorId, (v) => {
+          let { upvotes, downvotes } = v
+          if (current === 'up') upvotes = Math.max(0, upvotes - 1)
+          if (current === 'down') downvotes = Math.max(0, downvotes - 1)
+          if (next === 'up') upvotes += 1
+          if (next === 'down') downvotes += 1
+          return { ...touchLastVote(v), upvotes, downvotes }
+        })
+      }
       return updated
     })
-  }, [])
 
-  // Tag toggle: one selection per tag per vendor, increments/decrements aggregate
+    if (isCloudVendor(vendorId)) {
+      const current = userVotes[vendorId] ?? null
+      const next = current === direction ? null : direction
+      httpsCallable(functions, 'discoverApi')({ action: 'voteOnDiscoverVendor', vendorId, direction: next })
+        .catch((err) => {
+          console.warn('voteOnDiscoverVendor failed', err)
+          toast('error', 'Could not save vote')
+        })
+    }
+  }, [isCloudVendor, patchNonCloudVendor, userVotes])
+
   const handleTagToggle = useCallback((vendorId, tagId) => {
     setUserTags(prev => {
       const vendorTags = prev[vendorId] || {}
       const wasSelected = !!vendorTags[tagId]
       const updatedVendorTags = { ...vendorTags, [tagId]: !wasSelected }
       const updated = { ...prev, [vendorId]: updatedVendorTags }
-
-      setVendors(vs => vs.map(v => {
-        if (v.id !== vendorId) return v
-        const tagCount = v.tags[tagId] || 0
-        const newCount = wasSelected ? Math.max(0, tagCount - 1) : tagCount + 1
-        return touchLastVote({ ...v, tags: { ...v.tags, [tagId]: newCount } })
-      }))
-
+      if (!isCloudVendor(vendorId)) {
+        patchNonCloudVendor(vendorId, (v) => {
+          const tags = { ...emptyTagCounts(), ...(v.tags || {}) }
+          const tagCount = tags[tagId] || 0
+          tags[tagId] = wasSelected ? Math.max(0, tagCount - 1) : tagCount + 1
+          return touchLastVote({ ...v, tags })
+        })
+      }
       return updated
     })
-  }, [])
 
-  // Payment toggle: same one-per-method rule as labels
+    if (isCloudVendor(vendorId)) {
+      const wasSelected = !!(userTags[vendorId] || {})[tagId]
+      httpsCallable(functions, 'discoverApi')({
+        action: 'toggleDiscoverVendorMeta',
+        vendorId, kind: 'tag', metaId: tagId, selected: !wasSelected,
+      }).catch((err) => {
+        console.warn('toggleDiscoverVendorMeta failed', err)
+        toast('error', 'Could not save label')
+      })
+    }
+  }, [isCloudVendor, patchNonCloudVendor, userTags])
+
   const handlePaymentToggle = useCallback((vendorId, paymentId) => {
     setUserPayments(prev => {
       const vendorPays = prev[vendorId] || {}
       const wasSelected = !!vendorPays[paymentId]
       const updatedVendorPays = { ...vendorPays, [paymentId]: !wasSelected }
       const updated = { ...prev, [vendorId]: updatedVendorPays }
-
-      setVendors(vs => vs.map(v => {
-        if (v.id !== vendorId) return v
-        const payments = v.payments || emptyPaymentCounts()
-        const payCount = payments[paymentId] || 0
-        const newCount = wasSelected ? Math.max(0, payCount - 1) : payCount + 1
-        return touchLastVote({ ...v, payments: { ...payments, [paymentId]: newCount } })
-      }))
-
+      if (!isCloudVendor(vendorId)) {
+        patchNonCloudVendor(vendorId, (v) => {
+          const payments = { ...emptyPaymentCounts(), ...(v.payments || {}) }
+          const payCount = payments[paymentId] || 0
+          payments[paymentId] = wasSelected ? Math.max(0, payCount - 1) : payCount + 1
+          return touchLastVote({ ...v, payments })
+        })
+      }
       return updated
     })
-  }, [])
 
-  const handleAddVendor = useCallback((name, type = 'domestic', tagIds = [], paymentIds = []) => {
-    const id = `v-user-${Date.now()}`
-    const tags = emptyTagCounts()
-    const payments = emptyPaymentCounts()
-    const validTagIds = tagIds.filter(tid => Object.prototype.hasOwnProperty.call(tags, tid))
-    const validPaymentIds = paymentIds.filter(pid => Object.prototype.hasOwnProperty.call(payments, pid))
-    validTagIds.forEach(tid => { tags[tid] = 1 })
-    validPaymentIds.forEach(pid => { payments[pid] = 1 })
+    if (isCloudVendor(vendorId)) {
+      const wasSelected = !!(userPayments[vendorId] || {})[paymentId]
+      httpsCallable(functions, 'discoverApi')({
+        action: 'toggleDiscoverVendorMeta',
+        vendorId, kind: 'payment', metaId: paymentId, selected: !wasSelected,
+      }).catch((err) => {
+        console.warn('toggleDiscoverVendorMeta failed', err)
+        toast('error', 'Could not save payment')
+      })
+    }
+  }, [isCloudVendor, patchNonCloudVendor, userPayments])
 
-    const hasVotes = validTagIds.length > 0 || validPaymentIds.length > 0
-    const newVendor = {
-      id,
-      name,
-      type,
-      upvotes: 0,
-      downvotes: 0,
-      tags,
-      payments,
-      lastVoteAt: hasVotes ? new Date().toISOString() : null,
+  const handleAddVendor = useCallback(async (name, type = 'domestic', tagIds = [], paymentIds = [], website = '') => {
+    const displayName = formatVendorName(name)
+    if (submitMode === 'dev') {
+      const id = `v-dev-${Date.now()}`
+      const tags = emptyTagCounts()
+      const payments = emptyPaymentCounts()
+      tagIds.filter(tid => Object.prototype.hasOwnProperty.call(tags, tid)).forEach(tid => { tags[tid] = 1 })
+      paymentIds.filter(pid => Object.prototype.hasOwnProperty.call(payments, pid)).forEach(pid => { payments[pid] = 1 })
+      const domain = (() => {
+        try { return new URL(website).hostname.replace(/^www\./i, '') } catch { return '' }
+      })()
+      const logoFallback = domain
+        ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=256`
+        : ''
+      const newVendor = {
+        id,
+        isSeed: true,
+        isDevLocal: true,
+        name: displayName,
+        type,
+        website,
+        domain,
+        logoUrl: logoFallback,
+        logoFallback,
+        tags,
+        payments,
+        upvotes: 0,
+        downvotes: 0,
+        lastVoteAt: (tagIds.length || paymentIds.length) ? new Date().toISOString() : null,
+        status: 'approved',
+      }
+      setLocalDevVendors(prev => [newVendor, ...prev])
+      if (tagIds.length) {
+        setUserTags(prev => ({
+          ...prev,
+          [id]: Object.fromEntries(tagIds.map(tid => [tid, true])),
+        }))
+      }
+      if (paymentIds.length) {
+        setUserPayments(prev => ({
+          ...prev,
+          [id]: Object.fromEntries(paymentIds.map(pid => [pid, true])),
+        }))
+      }
+      toast('success', 'DEV only — saved locally, not shared')
+      return
     }
-    setVendors(prev => [newVendor, ...prev])
 
-    if (validTagIds.length) {
-      setUserTags(prev => ({
-        ...prev,
-        [id]: Object.fromEntries(validTagIds.map(tid => [tid, true])),
-      }))
+    let recaptchaToken = null
+    try {
+      recaptchaToken = await executeRecaptcha('suggest_vendor')
+    } catch (recaptchaError) {
+      console.warn('reCAPTCHA failed for suggest_vendor', recaptchaError)
     }
-    if (validPaymentIds.length) {
-      setUserPayments(prev => ({
-        ...prev,
-        [id]: Object.fromEntries(validPaymentIds.map(pid => [pid, true])),
-      }))
+
+    try {
+      const submit = httpsCallable(functions, 'discoverApi')
+      await submit({ action: 'submitVendorSuggestion', name: displayName, type, website, tagIds, paymentIds, recaptchaToken })
+      toast('success', 'Submitted for review — thanks!')
+    } catch (err) {
+      const code = err?.code || ''
+      const msg = err?.message || 'Submission failed'
+      if (code.includes('resource-exhausted') || /daily limit/i.test(msg)) {
+        throw new Error('Daily suggestion limit reached. Try again tomorrow.')
+      }
+      throw new Error(msg.replace(/^Firebase:\s*/i, '').replace(/\s*\([^)]*\)\.?\s*$/, '').trim() || msg)
     }
-  }, [])
+  }, [submitMode])
+
+  const handleOpenOnWeb = useCallback(async (vendor = null) => {
+    if (openingWeb) return
+    setOpeningWeb(true)
+    if (vendor?.id) setDeepDiveVendorId(vendor.id)
+    try {
+      const generate = httpsCallable(functions, 'discoverApi')
+      const { data } = await generate({ action: 'generateDiscoverToken' })
+      const path = data?.urlPath || (data?.token ? `/discover?token=${data.token}` : null)
+      if (!path) throw new Error('No token returned')
+      const url = new URL(`${DISCOVER_WEB_ORIGIN}${path}`)
+      if (vendor?.id) url.searchParams.set('vendor', vendor.id)
+      if (vendor?.type) url.searchParams.set('type', vendor.type)
+      await openExternalUrl(url.toString())
+    } catch (err) {
+      console.warn('generateDiscoverToken failed', err)
+      toast('error', 'Could not open web Discover')
+    } finally {
+      setOpeningWeb(false)
+      setDeepDiveVendorId(null)
+    }
+  }, [openingWeb])
 
   const sortedVendors = [...vendors]
-    .filter(v => categoryFilter === 'all' || (v.type || 'domestic') === categoryFilter)
+    .filter(v => (v.type || 'domestic') === categoryFilter)
     .sort((a, b) => {
       if (sortBy === 'score') return netScore(b) - netScore(a)
       return a.name.localeCompare(b.name)
@@ -981,58 +1246,47 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
 
   const SORT_OPTS = [
     { key: 'score', label: 'Top Rated' },
-    { key: 'name',  label: 'A–Z' },
+    { key: 'name', label: 'A–Z' },
   ]
   const CATEGORY_OPTS = [
-    { key: 'all',           label: 'All' },
-    { key: 'domestic',      label: 'Domestic' },
+    { key: 'domestic', label: 'Domestic' },
     { key: 'international', label: 'Intl' },
-    { key: 'groupbuy',      label: 'Group Buy' },
+    { key: 'groupbuy', label: 'Group Buy' },
+    { key: 'supplies', label: 'Supplies' },
   ]
   const catIndex = Math.max(0, CATEGORY_OPTS.findIndex(o => o.key === categoryFilter))
   const sortIndex = Math.max(0, SORT_OPTS.findIndex(o => o.key === sortBy))
 
   return (
     <div className="pb-28">
-      {/* Header banner */}
       <div
-        className="rounded-xl px-4 py-3 mb-4 flex items-start gap-3"
-        style={{
-          background: cardBg,
-          border: `1px solid ${mutedBorder}`,
-        }}
+        className="rounded-xl px-4 py-3 mb-4 flex items-center justify-center gap-3 text-center"
+        style={{ background: cardBg, border: `1px solid ${mutedBorder}` }}
       >
-        <Info size={15} weight="duotone" className="mt-0.5 shrink-0" style={{ color: theme.primary }} />
-        <p className="text-xs leading-relaxed" style={{ color: theme.textLight }}>
+        <Info size={15} weight="duotone" className="shrink-0" style={{ color: theme.primary }} />
+        <p className="text-[10px] sm:text-xs leading-relaxed" style={{ color: theme.textLight }}>
           Community-updated sources log. No sponsorships, no affiliate links, no endorsements.
         </p>
       </div>
 
-      {/* Controls */}
       <div className="mb-4 space-y-2.5">
-        {/* Category segmented control — matches Vendors page */}
         <div
           role="group"
-          aria-label="Source category"
-          className="relative grid p-1 rounded-full"
+          aria-label="Filter by category"
+          className="relative grid p-0.5 rounded-full"
           style={{
             gridTemplateColumns: `repeat(${CATEGORY_OPTS.length}, minmax(0, 1fr))`,
-            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(47,59,58,0.09)',
-            boxShadow: theme.isDark
-              ? 'inset 0 2px 4px rgba(0,0,0,0.35), inset 0 1px 2px rgba(0,0,0,0.25)'
-              : 'inset 0 2px 5px rgba(47,59,58,0.14), inset 0 1px 2px rgba(47,59,58,0.08)',
+            backgroundColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(47,59,58,0.07)',
           }}
         >
           <div
-            className="absolute top-1 bottom-1 left-1 rounded-full pointer-events-none"
+            className="absolute top-0.5 bottom-0.5 left-0.5 rounded-full pointer-events-none"
             style={{
-              width: `calc((100% - 8px) / ${CATEGORY_OPTS.length})`,
+              width: `calc((100% - 4px) / ${CATEGORY_OPTS.length})`,
               transform: `translateX(calc(${catIndex} * 100%))`,
-              transition: 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)',
-              backgroundColor: theme.primary || '#7F9E95',
-              boxShadow: theme.isDark
-                ? `0 3px 10px ${theme.primary}66`
-                : `0 3px 10px ${theme.primary}44`,
+              transition: 'transform 240ms cubic-bezier(0.22, 1, 0.36, 1)',
+              backgroundColor: theme.primary,
+              boxShadow: theme.isDark ? 'none' : `0 1px 4px ${theme.primary}55`,
             }}
             aria-hidden="true"
           />
@@ -1044,7 +1298,7 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
                 type="button"
                 onClick={() => setCategoryFilter(opt.key)}
                 aria-pressed={active}
-                className="relative z-[1] py-2 px-0.5 rounded-full text-[11px] sm:text-xs font-semibold leading-tight touch-manipulation"
+                className="relative z-[1] py-2 px-1 rounded-full text-[11px] font-semibold touch-manipulation"
                 style={{
                   color: active ? (theme.textOnPrimary || '#fff') : theme.textLight,
                   WebkitTapHighlightColor: 'transparent',
@@ -1056,7 +1310,6 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
           })}
         </div>
 
-        {/* Sort + Suggest */}
         <div className="flex items-center gap-2">
           <div
             role="group"
@@ -1099,38 +1352,131 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowSubmitModal(true)}
-            className="inline-flex items-center gap-1.5 ml-auto text-xs px-3 py-2 rounded-full font-semibold touch-manipulation shrink-0"
-            style={{
-              backgroundColor: theme.primary,
-              color: theme.textOnPrimary || '#fff',
-              WebkitTapHighlightColor: 'transparent',
-              boxShadow: theme.isDark
-                ? `0 2px 8px ${theme.primary}55`
-                : `0 2px 8px ${theme.primary}40`,
-            }}
-          >
-            <Plus size={13} weight="bold" />
-            Suggest
-          </button>
+          {isDevDiscover ? (
+            <>
+              <div
+                className="inline-flex ml-auto p-0.5 rounded-full shrink-0"
+                role="group"
+                aria-label="Discover data source"
+                style={{
+                  background: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                  border: `1px solid ${theme.border}`,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setViewMode('dev')}
+                  aria-pressed={viewMode === 'dev'}
+                  className="px-2.5 py-1.5 rounded-full text-[10px] font-bold tracking-wide touch-manipulation"
+                  style={{
+                    background: viewMode === 'dev' ? '#b45309' : 'transparent',
+                    color: viewMode === 'dev' ? '#fff' : theme.textLight,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                  title="Show local DEV seeds & suggestions only"
+                >
+                  DEV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('live')}
+                  aria-pressed={viewMode === 'live'}
+                  className="px-2.5 py-1.5 rounded-full text-[10px] font-bold tracking-wide touch-manipulation"
+                  style={{
+                    background: viewMode === 'live' ? theme.primary : 'transparent',
+                    color: viewMode === 'live' ? '#fff' : theme.textLight,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                  title="Show live approved community vendors only"
+                >
+                  LIVE
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSubmitMode(viewMode === 'dev' ? 'dev' : 'live')
+                  setShowSubmitModal(true)
+                }}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-full font-semibold touch-manipulation shrink-0"
+                style={{
+                  backgroundColor: viewMode === 'dev' ? '#b45309' : theme.primary,
+                  color: '#fff',
+                  WebkitTapHighlightColor: 'transparent',
+                  boxShadow: viewMode === 'dev'
+                    ? '0 2px 8px rgba(180,83,9,0.35)'
+                    : (theme.isDark ? `0 2px 8px ${theme.primary}55` : `0 2px 8px ${theme.primary}40`),
+                }}
+                title={viewMode === 'dev'
+                  ? 'Local only — does not submit to the community queue'
+                  : 'Live community submission (goes to admin review)'}
+              >
+                <Plus size={13} weight="bold" />
+                {viewMode === 'dev' ? 'DEV Suggest' : 'Suggest'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = import.meta.env.DEV
+                    ? `${window.location.origin}/discover?token=preview`
+                    : `${DISCOVER_WEB_ORIGIN}/discover?token=preview`
+                  openExternalUrl(url)
+                }}
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-full font-semibold touch-manipulation shrink-0"
+                style={{
+                  backgroundColor: '#5B5FA8',
+                  color: '#fff',
+                  WebkitTapHighlightColor: 'transparent',
+                  boxShadow: '0 2px 8px rgba(91,95,168,0.35)',
+                }}
+                title="Open web Discover preview (local: /discover?token=preview)"
+              >
+                <Browser size={13} weight="bold" />
+                DEV Web
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setSubmitMode('live')
+                setShowSubmitModal(true)
+              }}
+              className="inline-flex items-center gap-1.5 ml-auto text-xs px-3 py-2 rounded-full font-semibold touch-manipulation shrink-0"
+              style={{
+                backgroundColor: theme.primary,
+                color: theme.textOnPrimary || '#fff',
+                WebkitTapHighlightColor: 'transparent',
+                boxShadow: theme.isDark ? `0 2px 8px ${theme.primary}55` : `0 2px 8px ${theme.primary}40`,
+              }}
+            >
+              <Plus size={13} weight="bold" />
+              Suggest
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Vendor list */}
       <div className="flex flex-col gap-3">
-        {sortedVendors.length === 0 ? (
+        {!cloudReady && sortedVendors.length === 0 ? (
+          <div className="py-10 flex justify-center">
+            <CircleNotch size={22} className="animate-spin" style={{ color: theme.textLight }} />
+          </div>
+        ) : sortedVendors.length === 0 ? (
           <div
             className="rounded-xl p-8 flex flex-col items-center gap-3 text-center"
             style={{ background: cardBg, border: `1px solid ${mutedBorder}` }}
           >
             <Storefront size={32} weight="duotone" style={{ color: theme.textLight, opacity: 0.4 }} />
             <p className="text-sm font-medium" style={{ color: theme.textLight }}>
-              No vendors submitted yet
+              {isDevDiscover && viewMode === 'live'
+                ? 'No live approved sources yet'
+                : 'No vendors submitted yet'}
             </p>
             <p className="text-xs" style={{ color: theme.textLight, opacity: 0.7 }}>
-              Be the first to suggest a vendor for community review.
+              {isDevDiscover && viewMode === 'live'
+                ? 'Toggle to DEV to work with local seeds, or submit a live suggestion for admin review.'
+                : 'Be the first to suggest a vendor for community review.'}
             </p>
           </div>
         ) : (
@@ -1144,18 +1490,20 @@ const SupplyIndex = forwardRef(function SupplyIndex({ theme }, ref) {
               onVote={handleVote}
               onTagToggle={handleTagToggle}
               onPaymentToggle={handlePaymentToggle}
+              onDeepDive={handleOpenOnWeb}
+              deepDiveBusy={openingWeb && deepDiveVendorId === vendor.id}
               theme={theme}
             />
           ))
         )}
       </div>
 
-      {/* Submit modal */}
       <SubmitVendorSheet
         open={showSubmitModal}
         theme={theme}
         onClose={() => setShowSubmitModal(false)}
         onSubmit={handleAddVendor}
+        devMode={submitMode === 'dev'}
       />
     </div>
   )
