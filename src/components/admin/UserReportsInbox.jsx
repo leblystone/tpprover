@@ -2,26 +2,18 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   CircleNotch, PaperPlaneTilt, CheckCircle, ChatCircle, MagnifyingGlass, Plus, GitCommit,
   CaretDown, CaretUp, CaretLeft, CaretRight, User, ShieldCheck, X, ArrowSquareOut, Wrench, List,
+  EnvelopeSimple, Bug, Lightbulb, Lifebuoy, Trash, ArrowLeft, Smiley, Clock,
 } from '@phosphor-icons/react';
 import CustomDropdown from '../common/inputs/CustomDropdown';
 import { UserDetailPanel } from './UserDetailModal';
 import { AdminSpinner } from './adminUi';
 
 export const TYPE_PILL = {
-  Bug: { bg: '#FEE2E2', color: '#DC2626' },
-  Suggestion: { bg: '#D1FAE5', color: '#065F46' },
-  Support: { bg: '#DBEAFE', color: '#1D4ED8' },
-  Deletion: { bg: '#FFEDD5', color: '#C2410C' },
+  Bug: { bg: '#FEE2E2', color: '#DC2626', icon: Bug },
+  Suggestion: { bg: '#D1FAE5', color: '#065F46', icon: Lightbulb },
+  Support: { bg: '#DBEAFE', color: '#1D4ED8', icon: Lifebuoy },
+  Deletion: { bg: '#FFEDD5', color: '#C2410C', icon: Trash },
 };
-
-const FILTER_TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'unread', label: 'Unread' },
-  { id: 'bug', label: 'Bugs' },
-  { id: 'suggestion', label: 'Suggestions' },
-  { id: 'support', label: 'Support' },
-  { id: 'deletion', label: 'Deletions' },
-];
 
 const STATUS_PILL = {
   working: { label: 'Working on it', bg: '#FEF3C7', color: '#B45309' },
@@ -99,21 +91,10 @@ export function ChipButton({
   );
 }
 
-/** Segmented Open / Closed toggle (replaces twin chip buttons) */
+/** Segmented Open / Closed — matches Notifications Tracking / Templates control */
 export function OpenClosedToggle({ showHistory, setShowHistory, openCount, closedCount, theme }) {
-  const trackBg = theme.isDark ? 'rgba(210, 198, 182, 0.1)' : '#F2EFEA';
-  const trackBorder = theme.isDark ? 'rgba(210, 198, 182, 0.18)' : '#E4DDD4';
-  const trackInset = theme.isDark
-    ? 'inset 0 2px 5px rgba(0,0,0,0.28), inset 0 1px 2px rgba(0,0,0,0.18)'
-    : 'inset 0 2px 5px rgba(100, 85, 70, 0.07), inset 0 1px 2px rgba(0,0,0,0.05)';
-  const activeBg = theme.primaryDark || theme.primary || '#2d5a3a';
-  const inactiveColor = theme.textLight || '#8A8077';
-  const activeShadow = theme.isDark
-    ? '0 1px 3px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)'
-    : '0 1px 3px rgba(80, 65, 50, 0.12), inset 0 1px 0 rgba(255,255,255,0.25)';
-  const inactiveShadow = theme.isDark
-    ? 'inset 0 1px 2px rgba(0,0,0,0.12)'
-    : 'inset 0 1px 2px rgba(100, 85, 70, 0.06)';
+  const trackBg = theme.isDark ? 'rgba(255,255,255,0.06)' : '#e8eaed';
+  const inactiveColor = theme.text || '#374151';
 
   return (
     <div
@@ -121,75 +102,53 @@ export function OpenClosedToggle({ showHistory, setShowHistory, openCount, close
       aria-label="Open or closed reports"
       style={{
         display: 'flex',
-        padding: '3px',
-        borderRadius: '10px',
+        width: '100%',
+        padding: '4px',
+        borderRadius: '12px',
         backgroundColor: trackBg,
-        border: `1px solid ${trackBorder}`,
-        boxShadow: trackInset,
-        marginBottom: '10px',
-        gap: '2px',
+        border: `1px solid ${theme.border}`,
+        gap: '4px',
       }}
     >
-      <button
-        type="button"
-        role="tab"
-        aria-selected={!showHistory}
-        onClick={() => setShowHistory(false)}
-        style={{
-          flex: 1,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '5px',
-          padding: '7px 8px',
-          borderRadius: '8px',
-          border: 'none',
-          fontSize: '11px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
-          backgroundColor: !showHistory ? activeBg : 'transparent',
-          color: !showHistory ? theme.textOnPrimary || '#fff' : inactiveColor,
-          boxShadow: !showHistory ? activeShadow : inactiveShadow,
-        }}
-      >
-        <ChatCircle size={13} weight={!showHistory ? 'fill' : 'regular'} />
-        <span>Open</span>
-        <span style={{ fontSize: '10px', opacity: 0.92 }}>{openCount}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={showHistory}
-        onClick={() => setShowHistory(true)}
-        style={{
-          flex: 1,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '5px',
-          padding: '7px 8px',
-          borderRadius: '8px',
-          border: 'none',
-          fontSize: '11px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease',
-          backgroundColor: showHistory ? activeBg : 'transparent',
-          color: showHistory ? theme.textOnPrimary || '#fff' : inactiveColor,
-          boxShadow: showHistory ? activeShadow : inactiveShadow,
-        }}
-      >
-        <CheckCircle size={13} weight={showHistory ? 'fill' : 'regular'} />
-        <span>Closed</span>
-        <span style={{ fontSize: '10px', opacity: 0.92 }}>{closedCount}</span>
-      </button>
+      {[
+        { id: 'open', label: 'Open', count: openCount, active: !showHistory, Icon: ChatCircle, onClick: () => setShowHistory(false) },
+        { id: 'closed', label: 'Closed', count: closedCount, active: showHistory, Icon: CheckCircle, onClick: () => setShowHistory(true) },
+      ].map(({ id, label, count, active, Icon, onClick }) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={active}
+          onClick={onClick}
+          style={{
+            flex: 1,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '8px 10px',
+            borderRadius: '8px',
+            border: 'none',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background-color 0.15s ease, color 0.15s ease',
+            backgroundColor: active ? (theme.primary || '#2d5a3a') : 'transparent',
+            color: active ? '#fff' : inactiveColor,
+          }}
+        >
+          <Icon size={16} weight={active ? 'fill' : 'regular'} />
+          <span>{label}</span>
+          <span style={{ fontSize: '11px', opacity: active ? 0.9 : 0.65, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
+        </button>
+      ))}
     </div>
   );
 }
 
 export function TypePill({ typeLabel }) {
   const pill = TYPE_PILL[typeLabel] || TYPE_PILL.Support;
+  const Icon = pill.icon || Lifebuoy;
   return (
     <span
       style={{
@@ -202,8 +161,12 @@ export function TypePill({ typeLabel }) {
         textTransform: 'uppercase',
         letterSpacing: '0.02em',
         flexShrink: 0,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '3px',
       }}
     >
+      <Icon size={10} weight="bold" />
       {typeLabel}
     </span>
   );
@@ -225,9 +188,7 @@ export function ConfirmChip({ label, confirmLabel, armed, onArm, onConfirm, load
 
 export default function UserReportsInbox({
   theme: t,
-  typeFilter,
-  setTypeFilter,
-  typeCounts,
+  typeCounts: _typeCounts,
   showHistory,
   setShowHistory,
   openCount,
@@ -284,36 +245,51 @@ export default function UserReportsInbox({
   onExtendTrial,
   isExtendingTrial = false,
 }) {
-  const LEFT_PANEL_WIDTH = 260;
+  const LEFT_PANEL_WIDTH = 280;
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [accountExpanded, setAccountExpanded] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [listSearch, setListSearch] = useState('');
+  /** Quick filter from summary cards: all | unread | bug | support | recent7 */
+  const [quickFilter, setQuickFilter] = useState('all');
   const [isNarrow, setIsNarrow] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
   );
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const mq = window.matchMedia('(max-width: 900px)');
+    const mq = window.matchMedia('(max-width: 1023px)');
     const onChange = () => setIsNarrow(mq.matches);
     onChange();
     mq.addEventListener?.('change', onChange);
     return () => mq.removeEventListener?.('change', onChange);
   }, []);
 
-  // On narrow screens, Account needs the middle column — collapse user list automatically
+  // Desktop only: Account expand can collapse the list to free space
   useEffect(() => {
-    if (accountExpanded && isNarrow) setLeftPanelCollapsed(true);
+    if (accountExpanded && !isNarrow) setLeftPanelCollapsed(true);
   }, [accountExpanded, isNarrow]);
 
   const accountFocusMode = accountExpanded && isNarrow;
+  const showListPane = !isNarrow || !selectedUserEmail;
+  const showDetailPane = !isNarrow || Boolean(selectedUserEmail);
 
   const handleSelectUser = useCallback(
     (email) => {
       onSelectUser(email);
-      setLeftPanelCollapsed(true);
+      // Desktop: collapse list to focus the conversation; narrow uses full drill-down
+      if (!isNarrow) setLeftPanelCollapsed(true);
     },
-    [onSelectUser]
+    [onSelectUser, isNarrow]
   );
+
+  const handleBackToList = useCallback(() => {
+    if (typeof onAccountClose === 'function') onAccountClose();
+    onSelectUser(null);
+    setLeftPanelCollapsed(false);
+    setAccountExpanded(false);
+    setMobileToolsOpen(false);
+  }, [onAccountClose, onSelectUser]);
 
   useEffect(() => {
     if (!selectedUserEmail) setLeftPanelCollapsed(false);
@@ -321,7 +297,13 @@ export default function UserReportsInbox({
 
   useEffect(() => {
     setAccountExpanded(false);
+    setMobileToolsOpen(false);
   }, [selectedUserEmail]);
+
+  // Reset desktop collapse when switching to narrow drill-down
+  useEffect(() => {
+    if (isNarrow) setLeftPanelCollapsed(false);
+  }, [isNarrow]);
 
   const itemKey = (item) =>
     item.kind === 'feedback' ? `fb-${item.raw?.id}` : `sq-${item.raw?.logId}`;
@@ -363,50 +345,42 @@ export default function UserReportsInbox({
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Admin replies for suggestion/bug: historical From the Team pushes + feedback-doc / optimistic
-  const feedbackAdminReplies = useMemo(() => {
-    if (!isFeedback || !selectedQueueItem) return [];
-
-    const normalize = (s) => (s || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    const out = [];
-    const usedLoose = []; // { text, ms }
-
-    const pushUnique = (key, message, createdAt) => {
-      const text = (message || '').trim();
-      if (!text) return;
-      const loose = normalize(text);
-      const ms = tsToMs(createdAt) || 0;
-      const dup = usedLoose.some((u) => {
-        if (u.text !== loose) return false;
-        if (!u.ms || !ms) return true;
-        return Math.abs(u.ms - ms) < 120000;
-      });
-      if (dup) return;
-      usedLoose.push({ text: loose, ms });
-      out.push({ key, message: text, createdAt: createdAt || null });
-    };
-
-    for (const m of fromTheTeamMessages || []) {
-      pushUnique(`ftt-${m.id || m.messageId || out.length}`, m.message || m.text, m.createdAt);
-    }
-
-    const fb = selectedQueueItem.raw?._rawFeedback || selectedQueueItem.raw || {};
-    if (Array.isArray(fb.adminReplies)) {
-      fb.adminReplies.forEach((r, i) => {
-        pushUnique(`fb-reply-${i}`, r.message || r.text, r.createdAt || r.responseDate);
-      });
-    } else if (fb.adminResponse) {
-      pushUnique('fb-reply-latest', fb.adminResponse, fb.responseDate);
-    }
-
-    out.sort((a, b) => tsToMs(a.createdAt) - tsToMs(b.createdAt));
-    return out;
-  }, [isFeedback, selectedQueueItem, fromTheTeamMessages]);
-
   // Group filteredItems by user email for the left column
+  const poolItems = useMemo(() => filteredItems || [], [filteredItems]);
+
+  const sevenDaysAgoMs = useMemo(() => Date.now() - 7 * 24 * 60 * 60 * 1000, []);
+
+  const quickCounts = useMemo(() => {
+    let unread = 0;
+    let bug = 0;
+    let support = 0;
+    let recent7 = 0;
+    for (const item of poolItems) {
+      if (item.unread) unread += 1;
+      if (item.typeCategory === 'bug') bug += 1;
+      if (item.typeCategory === 'support') support += 1;
+      if ((item.dateMs || 0) >= sevenDaysAgoMs) recent7 += 1;
+    }
+    return {
+      all: poolItems.length,
+      unread,
+      bug,
+      support,
+      recent7,
+    };
+  }, [poolItems, sevenDaysAgoMs]);
+
+  const scopedItems = useMemo(() => {
+    if (quickFilter === 'unread') return poolItems.filter((item) => item.unread);
+    if (quickFilter === 'bug') return poolItems.filter((item) => item.typeCategory === 'bug');
+    if (quickFilter === 'support') return poolItems.filter((item) => item.typeCategory === 'support');
+    if (quickFilter === 'recent7') return poolItems.filter((item) => (item.dateMs || 0) >= sevenDaysAgoMs);
+    return poolItems;
+  }, [poolItems, quickFilter, sevenDaysAgoMs]);
+
   const userGroups = useMemo(() => {
     const groups = new Map();
-    for (const item of (filteredItems || [])) {
+    for (const item of scopedItems) {
       const email = item.email?.trim().toLowerCase() || 'unknown';
       if (!groups.has(email)) {
         groups.set(email, {
@@ -430,21 +404,53 @@ export default function UserReportsInbox({
       if (a.hasUnread !== b.hasUnread) return a.hasUnread ? -1 : 1;
       return b.lastActivity - a.lastActivity;
     });
-  }, [filteredItems]);
+  }, [scopedItems]);
 
   const selectedGroup = useMemo(
     () => userGroups.find((g) => g.email?.trim().toLowerCase() === selectedUserEmail) || null,
     [userGroups, selectedUserEmail]
   );
 
-  // Build the render list — same algorithm as SupportChatModal
+  const visibleUserGroups = useMemo(() => {
+    const needle = listSearch.trim().toLowerCase();
+    if (!needle) return userGroups;
+    return userGroups.filter((g) => (g.email || '').toLowerCase().includes(needle));
+  }, [userGroups, listSearch]);
+
+  const applyQuickFilter = useCallback(
+    (next) => {
+      if (next === 'all') {
+        setQuickFilter('all');
+        if (showHistory) setShowHistory(false);
+        return;
+      }
+      setQuickFilter((prev) => (prev === next ? 'all' : next));
+    },
+    [showHistory, setShowHistory]
+  );
+
+  // Auto-select newest unread (else newest) report so actions/reply always have context
+  useEffect(() => {
+    if (!selectedUserEmail || !selectedGroup?.items?.length) return;
+    const stillValid = selectedQueueItem && selectedGroup.items.some((i) => itemKey(i) === itemKey(selectedQueueItem));
+    if (stillValid) return;
+    const pick = selectedGroup.items.find((i) => i.unread) || selectedGroup.items[0];
+    if (pick) onSelectItem(pick);
+  }, [selectedUserEmail, selectedGroup, selectedQueueItem, onSelectItem]);
+
+  // One blended timeline: all ticket messages + openers for feedback not yet linked to a ticket
   const renderItems = useMemo(() => {
     const items = [];
     let lastTicketId = null;
+    const coveredTicketIds = new Set();
+    const coveredFeedbackIds = new Set();
+
     for (let i = 0; i < (ticketMessages || []).length; i++) {
       const msg = ticketMessages[i];
       if (msg._ticketId !== lastTicketId) {
         lastTicketId = msg._ticketId;
+        coveredTicketIds.add(msg._ticketId);
+        if (msg._feedbackId) coveredFeedbackIds.add(msg._feedbackId);
         const tc = msgTypeColor(msg._ticketType);
         const ticketMsgs = ticketMessages.filter((m) => m._ticketId === msg._ticketId);
         items.push({
@@ -459,28 +465,93 @@ export default function UserReportsInbox({
       }
       items.push({ type: 'message', key: msg.id || `msg-${i}`, msg });
     }
-    return items;
-  }, [ticketMessages]);
 
-  const showConversationPane = Boolean(selectedQueueItem);
+    // Unlinked feedback still needs to appear in the blend
+    for (const item of selectedGroup?.items || []) {
+      if (item.kind !== 'feedback') continue;
+      const fbId = item.raw?.id || item.raw?._rawFeedback?.id;
+      const linked = item.raw?._rawFeedback?.linkedTicketId || item.raw?.ticketId;
+      if (linked && coveredTicketIds.has(linked)) continue;
+      if (fbId && coveredFeedbackIds.has(fbId)) continue;
+      const typeKey = (item.typeCategory === 'suggestion' ? 'suggestion' : 'bug');
+      const tc = msgTypeColor(typeKey);
+      items.push({
+        type: 'divider',
+        key: `divider-fb-${fbId || item.dateMs}`,
+        ticketNumber: item.ticketNumber || null,
+        ticketType: typeKey,
+        ticketStatus: item.feedbackStatus || 'new',
+        tc,
+        date: item.dateMs ? new Date(item.dateMs) : null,
+      });
+      items.push({
+        type: 'message',
+        key: `synth-fb-${fbId || item.dateMs}`,
+        msg: {
+          message: item.message,
+          text: item.message,
+          senderType: 'user',
+          createdAt: item.dateMs ? new Date(item.dateMs) : null,
+          _ticketType: typeKey,
+          _synthetic: true,
+          _queueKey: itemKey(item),
+        },
+      });
+    }
+
+    items.sort((a, b) => {
+      const ta = a.type === 'divider'
+        ? tsToMs(a.date)
+        : tsToMs(a.msg?.createdAt);
+      const tb = b.type === 'divider'
+        ? tsToMs(b.date)
+        : tsToMs(b.msg?.createdAt);
+      if (ta !== tb) return ta - tb;
+      if (a.type === 'divider' && b.type !== 'divider') return -1;
+      if (b.type === 'divider' && a.type !== 'divider') return 1;
+      return 0;
+    });
+
+    return items;
+  }, [ticketMessages, selectedGroup]);
+
+  const showConversationPane = Boolean(selectedUserEmail);
+  const stackDetailPanes = isNarrow && showDetailPane;
+  const listOnlyDesktop = !isNarrow && !showConversationPane;
+  const listOnlyLayout = !showConversationPane;
+  const panelShadow = t.isDark ? '0 4px 16px rgba(0,0,0,0.2)' : '0 4px 16px rgba(47,59,58,0.05)';
+  const panelCardStyle = {
+    border: `1px solid ${t.border}`,
+    borderRadius: '16px',
+    boxShadow: panelShadow,
+    overflow: 'hidden',
+    backgroundColor: t.cardBackground || t.surface || '#fff',
+  };
 
   return (
     <div
       style={{
         display: 'flex',
+        flexDirection: stackDetailPanes ? 'column' : 'row',
         justifyContent: 'flex-start',
         alignItems: 'stretch',
         width: '100%',
-        maxWidth: showConversationPane ? '100%' : 'min(100%, 920px)',
-        height: 'calc(100vh - 95px)',
+        maxWidth: 'none',
+        flex: 1,
+        margin: 0,
+        padding: '8px',
+        gap: '8px',
+        boxSizing: 'border-box',
+        height: '100%',
+        minHeight: 0,
+        minWidth: 0,
         border: 0,
-        borderTop: `1px solid ${t.border}`,
         overflow: 'hidden',
-        backgroundColor: t.cardBackground || '#fff',
+        backgroundColor: t.background || '#F9FAFB',
       }}
     >
-      {/* Expand rail — when user list is collapsed */}
-      {leftPanelCollapsed && (
+      {/* Expand rail — desktop only when user list is collapsed */}
+      {!isNarrow && leftPanelCollapsed && (
         <button
           type="button"
           onClick={() => setLeftPanelCollapsed(false)}
@@ -488,9 +559,9 @@ export default function UserReportsInbox({
           style={{
             width: '36px',
             flexShrink: 0,
-            border: 'none',
-            borderRight: `1px solid ${t.border}`,
-            backgroundColor: t.background || '#F9FAFB',
+            border: `1px solid ${t.border}`,
+            borderRadius: '16px',
+            backgroundColor: t.cardBackground || '#fff',
             cursor: 'pointer',
             display: 'flex',
             flexDirection: 'column',
@@ -499,45 +570,122 @@ export default function UserReportsInbox({
             gap: '6px',
             color: t.primary,
             transition: 'background 0.15s',
+            boxShadow: panelShadow,
           }}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = t.primary + '12'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = t.background || '#F9FAFB'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = t.cardBackground || '#fff'; }}
         >
           <CaretRight size={18} weight="bold" />
           <List size={16} />
         </button>
       )}
 
-      {/* ═══ COL 1 — User List (collapsible) ═════════════════════════════════ */}
+      {/* ═══ COL 1 — User List ═══════════════════════════════════════════════ */}
+      {showListPane && (
       <div
         style={{
-          width: leftPanelCollapsed ? 0 : LEFT_PANEL_WIDTH,
-          minWidth: leftPanelCollapsed ? 0 : LEFT_PANEL_WIDTH,
+          width: isNarrow || listOnlyLayout
+            ? '100%'
+            : (leftPanelCollapsed ? 0 : Math.max(LEFT_PANEL_WIDTH, 300)),
+          minWidth: isNarrow || listOnlyLayout
+            ? 0
+            : (leftPanelCollapsed ? 0 : Math.max(LEFT_PANEL_WIDTH, 300)),
+          flex: isNarrow || listOnlyLayout ? '1 1 auto' : undefined,
           flexShrink: 0,
-          borderRight: leftPanelCollapsed ? 'none' : `1px solid ${t.border}`,
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: t.background || '#F9FAFB',
-          overflow: 'hidden',
-          opacity: leftPanelCollapsed ? 0 : 1,
-          pointerEvents: leftPanelCollapsed ? 'none' : 'auto',
-          transition: 'width 0.28s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease',
+          opacity: (!isNarrow && leftPanelCollapsed) ? 0 : 1,
+          pointerEvents: (!isNarrow && leftPanelCollapsed) ? 'none' : 'auto',
+          transition: isNarrow
+            ? 'none'
+            : 'width 0.28s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease',
+          ...panelCardStyle,
         }}
       >
-        {/* Funnel header */}
-        <div style={{ padding: '12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px' }}>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: t.text, flexShrink: 0 }}>User Reports</div>
+        {/* Funnel header — Notifications tracker language */}
+        <div
+          style={{
+            padding: '14px',
+            borderBottom: `1px solid ${t.border}`,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            backgroundColor: t.cardBackground || t.surface || '#fff',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '7px',
+                  borderRadius: '12px',
+                  backgroundColor: `${t.primary || '#2d5a3a'}18`,
+                  flexShrink: 0,
+                }}
+              >
+                <Lifebuoy size={18} weight="regular" style={{ color: t.primary }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: t.text, lineHeight: 1.2 }}>User Reports</div>
+                <div style={{ fontSize: '11px', color: t.textLight, marginTop: '2px' }}>
+                  {visibleUserGroups.length} user{visibleUserGroups.length !== 1 ? 's' : ''}
+                  {listSearch.trim() ? ' match' : ''}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0, maxWidth: listOnlyLayout ? '480px' : '280px' }}>
+              <MagnifyingGlass
+                size={15}
+                weight="regular"
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: t.textLight,
+                  pointerEvents: 'none',
+                }}
+              />
+              <input
+                type="search"
+                value={listSearch}
+                onChange={(e) => setListSearch(e.target.value)}
+                placeholder="Search by email…"
+                style={{
+                  width: '100%',
+                  padding: '8px 10px 8px 32px',
+                  borderRadius: '999px',
+                  border: `1px solid ${t.border}`,
+                  backgroundColor: t.isDark ? 'rgba(255,255,255,0.04)' : '#F9FAFB',
+                  color: t.text,
+                  fontSize: '12px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  boxShadow: t.isDark ? '0 1px 4px rgba(0,0,0,0.25)' : '0 1px 4px rgba(0,0,0,0.06)',
+                }}
+              />
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               <ChipButton
                 active={showTools}
                 onClick={() => setShowTools((v) => !v)}
-                style={{ padding: '4px 10px', fontSize: '10px' }}
+                style={{
+                  padding: '7px 12px',
+                  fontSize: '11px',
+                  borderRadius: '999px',
+                  boxShadow: t.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.08)',
+                }}
                 title="Admin tools"
               >
-                <Wrench size={12} /> Tools {showTools ? <CaretUp size={12} /> : <CaretDown size={12} />}
+                <Wrench size={13} weight="regular" /> Tools {showTools ? <CaretUp size={12} /> : <CaretDown size={12} />}
               </ChipButton>
-              {selectedUserEmail && (
+              {!isNarrow && selectedUserEmail && (
                 <button
                   type="button"
                   onClick={() => setLeftPanelCollapsed(true)}
@@ -546,14 +694,15 @@ export default function UserReportsInbox({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
+                    padding: '7px 10px',
+                    borderRadius: '999px',
                     border: `1px solid ${t.border}`,
                     backgroundColor: t.cardBackground,
                     color: t.textLight,
-                    fontSize: '10px',
+                    fontSize: '11px',
                     fontWeight: '600',
                     cursor: 'pointer',
+                    boxShadow: t.isDark ? '0 2px 8px rgba(0,0,0,0.35)' : '0 2px 8px rgba(0,0,0,0.08)',
                   }}
                 >
                   <CaretLeft size={12} />
@@ -562,21 +711,132 @@ export default function UserReportsInbox({
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
-            {FILTER_TABS.map((tab) => (
-              <ChipButton
-                key={tab.id}
-                active={typeFilter === tab.id}
-                onClick={() => setTypeFilter(tab.id)}
-                style={{ padding: '4px 10px', fontSize: '11px' }}
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: listOnlyLayout
+                ? 'repeat(auto-fit, minmax(140px, 1fr))'
+                : '1fr 1fr',
+              gap: '8px',
+            }}
+          >
+            {[
+              {
+                key: 'all',
+                label: 'Open',
+                value: openCount,
+                color: t.primary || '#2d5a3a',
+                Icon: ChatCircle,
+                active: quickFilter === 'all' && !showHistory,
+              },
+              {
+                key: 'unread',
+                label: 'Unread',
+                value: quickCounts.unread,
+                color: '#3b82f6',
+                Icon: EnvelopeSimple,
+                active: quickFilter === 'unread',
+              },
+              {
+                key: 'bug',
+                label: 'Bugs',
+                value: quickCounts.bug,
+                color: '#ef4444',
+                Icon: Bug,
+                active: quickFilter === 'bug',
+              },
+              {
+                key: 'support',
+                label: 'Support',
+                value: quickCounts.support,
+                color: '#1D4ED8',
+                Icon: Lifebuoy,
+                active: quickFilter === 'support',
+              },
+              {
+                key: 'recent7',
+                label: 'Last 7d',
+                value: quickCounts.recent7,
+                color: '#0d9488',
+                Icon: Clock,
+                active: quickFilter === 'recent7',
+              },
+            ].map(({ key, label, value, color, Icon, active }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => applyQuickFilter(key)}
+                aria-pressed={active}
+                title={
+                  key === 'all'
+                    ? 'Show all open reports'
+                    : key === 'recent7'
+                      ? 'Show reports from the last 7 days'
+                      : `Filter to ${label.toLowerCase()} reports`
+                }
+                style={{
+                  borderRadius: '16px',
+                  border: active ? `1.5px solid ${color}` : `1px solid ${t.border}`,
+                  backgroundColor: active
+                    ? `${color}14`
+                    : t.isDark
+                      ? 'rgba(255,255,255,0.03)'
+                      : '#fff',
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  boxShadow: t.isDark
+                    ? '0 4px 16px rgba(0,0,0,0.2)'
+                    : '0 4px 16px rgba(47,59,58,0.05)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  font: 'inherit',
+                  width: '100%',
+                  transition: 'border-color 0.15s ease, background-color 0.15s ease',
+                }}
               >
-                {tab.label}
-                <span style={{ fontSize: '10px', opacity: 0.85, marginLeft: '2px' }}>
-                  {typeCounts[tab.id] ?? 0}
-                </span>
-              </ChipButton>
+                <div
+                  style={{
+                    flexShrink: 0,
+                    padding: '7px',
+                    borderRadius: '12px',
+                    backgroundColor: `${color}18`,
+                    display: 'flex',
+                  }}
+                >
+                  <Icon size={16} weight={active ? 'fill' : 'regular'} style={{ color }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: '600',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: active ? color : t.textLight,
+                    }}
+                  >
+                    {label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      fontVariantNumeric: 'tabular-nums',
+                      color: t.text,
+                      lineHeight: 1.15,
+                      marginTop: '2px',
+                    }}
+                  >
+                    {value}
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
+
           <OpenClosedToggle
             showHistory={showHistory}
             setShowHistory={setShowHistory}
@@ -602,13 +862,22 @@ export default function UserReportsInbox({
         )}
 
         {/* User rows — one per unique email */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-          {userGroups.length === 0 ? (
-            <div style={{ padding: '24px 16px', textAlign: 'center', color: t.textLight, fontSize: '13px' }}>
-              {showHistory ? 'No closed reports.' : 'All caught up! 🎉'}
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {visibleUserGroups.length === 0 ? (
+            <div style={{ padding: '32px 16px', textAlign: 'center', color: t.textLight, fontSize: '13px' }}>
+              {listSearch.trim() ? (
+                <p style={{ margin: 0 }}>No users match “{listSearch.trim()}”.</p>
+              ) : showHistory ? (
+                <p style={{ margin: 0 }}>No closed reports.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <Smiley size={28} weight="regular" style={{ color: t.primary, opacity: 0.45 }} />
+                  <p style={{ margin: 0, fontWeight: 500 }}>All caught up</p>
+                </div>
+              )}
             </div>
           ) : (
-            userGroups.map((group) => {
+            visibleUserGroups.map((group) => {
               const normalizedEmail = group.email?.trim().toLowerCase();
               const isSelected = normalizedEmail === selectedUserEmail;
               return (
@@ -619,23 +888,23 @@ export default function UserReportsInbox({
                   style={{
                     width: '100%',
                     textAlign: 'left',
-                    padding: '11px 14px',
-                    border: 'none',
-                    borderBottom: `1px solid ${t.border}`,
-                    borderLeft: isSelected ? `3px solid ${t.primary}` : '3px solid transparent',
+                    padding: '12px 14px',
+                    borderRadius: '16px',
+                    border: `1px solid ${isSelected ? (t.primary || '#2d5a3a') : t.border}`,
                     backgroundColor: isSelected
-                      ? (t.primary + '12')
-                      : group.hasUnread
-                        ? (t.primary + '08')
-                        : 'transparent',
+                      ? `${t.primary}12`
+                      : (t.cardBackground || t.surface || '#fff'),
                     cursor: 'pointer',
-                    transition: 'background 0.12s',
+                    transition: 'background 0.12s, border-color 0.12s, box-shadow 0.12s',
+                    boxShadow: t.isDark
+                      ? '0 4px 16px rgba(0,0,0,0.2)'
+                      : '0 4px 16px rgba(47,59,58,0.05)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '5px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' }}>
                     <span style={{
                       fontSize: '13px',
-                      fontWeight: group.hasUnread ? '700' : '500',
+                      fontWeight: group.hasUnread ? '700' : '600',
                       color: t.text,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -649,13 +918,13 @@ export default function UserReportsInbox({
                         <span
                           title={`${group.unreadCount} unread`}
                           style={{
-                            minWidth: '16px',
-                            height: '16px',
-                            padding: '0 4px',
+                            minWidth: '18px',
+                            height: '18px',
+                            padding: '0 5px',
                             borderRadius: '999px',
                             backgroundColor: t.primary,
                             color: '#fff',
-                            fontSize: '9px',
+                            fontSize: '10px',
                             fontWeight: '700',
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -686,63 +955,250 @@ export default function UserReportsInbox({
           )}
         </div>
       </div>
+      )}
 
-      {/* ═══ COL 2 — Ticket Cards + Actions ═════════════════════════════════ */}
+      {/* ═══ COL 2 — Ticket Cards + Actions (compact header on mobile) ═══ */}
+      {showDetailPane && !listOnlyDesktop && (
       <div
         style={{
-          flex: accountFocusMode ? '1 1 auto' : (showConversationPane ? '0 0 auto' : '1 1 0'),
-          width: accountFocusMode
+          flex: stackDetailPanes
+            ? '0 0 auto'
+            : accountFocusMode
+              ? '1 1 auto'
+              : '0 0 320px',
+          width: stackDetailPanes
             ? '100%'
-            : showConversationPane
-              ? (accountExpanded ? 'min(420px, 40vw)' : 'min(280px, 28vw)')
-              : undefined,
-          minWidth: accountFocusMode ? 0 : (showConversationPane ? 260 : 280),
-          maxWidth: accountFocusMode ? undefined : (showConversationPane ? 420 : undefined),
-          flexShrink: showConversationPane && !accountFocusMode ? 0 : 1,
-          borderRight: showConversationPane && !accountFocusMode ? `1px solid ${t.border}` : 'none',
+            : accountFocusMode
+              ? '100%'
+              : (accountExpanded ? 'min(380px, 36vw)' : '320px'),
+          minWidth: stackDetailPanes || accountFocusMode ? 0 : 280,
+          maxWidth: stackDetailPanes
+            ? '100%'
+            : accountFocusMode
+              ? undefined
+              : 380,
+          flexShrink: stackDetailPanes ? 0 : 0,
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: t.background || '#F9FAFB',
-          transition: 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1), flex 0.22s ease',
+          transition: stackDetailPanes ? 'none' : 'width 0.22s cubic-bezier(0.4, 0, 0.2, 1), flex 0.22s ease',
           minHeight: 0,
+          maxHeight: stackDetailPanes && !accountExpanded ? 'none' : undefined,
+          position: stackDetailPanes ? 'relative' : undefined,
+          zIndex: stackDetailPanes ? 2 : undefined,
+          ...panelCardStyle,
+          backgroundColor: t.background || '#F9FAFB',
         }}
       >
-        {/* Ticket actions */}
-        <div style={{ padding: '8px 12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {selectedQueueItem && !selectedTicket?.markedFixed && (
-            <ConfirmChip
-              label={isFeedback ? 'Mark resolved' : 'Close ticket'}
-              confirmLabel={isFeedback ? 'Tap again to resolve' : 'Tap again to close'}
-              armed={closeArmed}
-              onArm={() => setCloseArmed(true)}
-              onConfirm={onCloseTicket}
-              loading={closingTicket}
-              variant="success"
-            />
-          )}
-          {selectedQueueItem && isFeedback && selectedQueueItem.feedbackStatus === 'new' && onMarkReviewed && (
-            <ChipButton loading={markingReviewed} onClick={onMarkReviewed} style={{ fontSize: '11px' }}>
-              Mark reviewed
-            </ChipButton>
-          )}
-          {selectedQueueItem && selectedIsUnread && onMarkRead && (
-            <ChipButton onClick={onMarkRead} style={{ fontSize: '11px' }} title="Mark as read">
-              Mark read
-            </ChipButton>
-          )}
-          {selectedQueueItem && !selectedIsUnread && onMarkUnread && (
-            <ChipButton onClick={onMarkUnread} style={{ fontSize: '11px' }} title="Mark as unread">
-              Mark unread
-            </ChipButton>
-          )}
-        </div>
-        {reopenedBanner}
+        {/* Ticket actions — compact on mobile, full toolbar on desktop */}
+        {isNarrow && selectedUserEmail ? (
+          <div
+            style={{
+              padding: '8px 10px',
+              borderBottom: `1px solid ${t.border}`,
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              backgroundColor: t.cardBackground || '#fff',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={handleBackToList}
+                title="Back to user list"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  border: `1px solid ${t.border}`,
+                  backgroundColor: t.background || '#F9FAFB',
+                  color: t.text,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                <ArrowLeft size={16} weight="bold" />
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {selectedGroup?.email || selectedUserEmail}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  {selectedQueueItem && (() => {
+                    const badge = getTierBadge(selectedQueueItem.userAccountInfo);
+                    return badge ? (
+                      <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 999, fontWeight: 600, backgroundColor: badge.bg, color: badge.fg }}>
+                        {badge.label}
+                      </span>
+                    ) : null;
+                  })()}
+                  <span style={{ fontSize: 11, color: t.textLight }}>
+                    {selectedGroup?.items.length ?? 0} report{(selectedGroup?.items.length ?? 0) !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+              <ChipButton
+                active={mobileToolsOpen}
+                onClick={() => {
+                  setAccountExpanded(false);
+                  setMobileToolsOpen((v) => !v);
+                }}
+                style={{ padding: '8px 10px', fontSize: 11, flexShrink: 0 }}
+                title="Admin tools"
+              >
+                <Wrench size={14} />
+                Tools
+              </ChipButton>
+              <ChipButton
+                active={accountExpanded}
+                onClick={() => {
+                  setMobileToolsOpen(false);
+                  setAccountExpanded((v) => !v);
+                }}
+                style={{ padding: '8px 10px', fontSize: 11, flexShrink: 0 }}
+                title="Account tools"
+              >
+                <User size={14} weight={accountExpanded ? 'fill' : 'duotone'} />
+              </ChipButton>
+            </div>
+            {!accountExpanded && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 6,
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  paddingBottom: 2,
+                }}
+              >
+                {(selectedGroup?.items || []).map((item) => {
+                  const key = itemKey(item);
+                  const isSelected = key === selectedKey;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => onSelectItem(item)}
+                      title={item.message}
+                      style={{
+                        flex: '0 0 auto',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '5px 9px',
+                        borderRadius: 999,
+                        border: `1px solid ${isSelected ? t.primary : t.border}`,
+                        backgroundColor: isSelected ? `${t.primary}18` : t.background || '#F9FAFB',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {item.unread && (
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: t.primary, flexShrink: 0 }} />
+                      )}
+                      <TypePill typeLabel={item.typeLabel} />
+                      {item.ticketNumber && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: t.textLight }}>#{item.ticketNumber}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {reopenedBanner}
+          </div>
+        ) : (
+          <div style={{ padding: '8px 12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {selectedQueueItem && !selectedTicket?.markedFixed && (
+              <ConfirmChip
+                label="Close all"
+                confirmLabel="Tap again to close all reports"
+                armed={closeArmed}
+                onArm={() => setCloseArmed(true)}
+                onConfirm={onCloseTicket}
+                loading={closingTicket}
+                variant="success"
+              />
+            )}
+            {selectedQueueItem && isFeedback && selectedQueueItem.feedbackStatus === 'new' && onMarkReviewed && (
+              <ChipButton loading={markingReviewed} onClick={onMarkReviewed} style={{ fontSize: '11px' }}>
+                Mark reviewed
+              </ChipButton>
+            )}
+            {selectedQueueItem && selectedIsUnread && onMarkRead && (
+              <ChipButton onClick={onMarkRead} style={{ fontSize: '11px' }} title="Mark as read">
+                Mark read
+              </ChipButton>
+            )}
+            {selectedQueueItem && !selectedIsUnread && onMarkUnread && (
+              <ChipButton onClick={onMarkUnread} style={{ fontSize: '11px' }} title="Mark as unread">
+                Mark unread
+              </ChipButton>
+            )}
+          </div>
+        )}
+        {!isNarrow && reopenedBanner}
 
         {!selectedUserEmail ? (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: t.textLight, padding: '24px' }}>
             <ChatCircle size={32} style={{ opacity: 0.2, marginBottom: '10px' }} />
             <p style={{ fontSize: '13px', fontWeight: '500', margin: 0, textAlign: 'center' }}>Select a user to view their reports</p>
           </div>
+        ) : isNarrow ? (
+          /* Mobile: chat-first — account tools expand here; admin tools open as a sheet */
+          accountExpanded ? (
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                maxHeight: '100%',
+                overflowY: 'auto',
+                overscrollBehavior: 'contain',
+              }}
+            >
+              <div style={{ padding: '10px 12px', borderBottom: `1px solid ${t.border}` }}>
+                <ChipButton
+                  active={false}
+                  onClick={() => setAccountExpanded(false)}
+                  style={{ width: '100%', justifyContent: 'center', padding: '8px 12px', fontSize: 12 }}
+                  title="Return to conversation"
+                >
+                  <ChatCircle size={14} />
+                  Back to conversation
+                </ChipButton>
+              </div>
+              {isLoadingUserDetails && !hasSelectedUser && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 0' }}>
+                  <AdminSpinner size={24} />
+                </div>
+              )}
+              {userSelectionError && !hasSelectedUser && (
+                <p style={{ padding: '12px 14px', fontSize: '12px', margin: 0, color: t.error || '#EF4444' }}>
+                  {userSelectionError}
+                </p>
+              )}
+              {!hasSelectedUser && !isLoadingUserDetails && !userSelectionError && (
+                <p style={{ padding: '16px 14px', fontSize: '12px', textAlign: 'center', color: t.textLight, margin: 0 }}>
+                  Select a report to load account tools
+                </p>
+              )}
+              {hasSelectedUser && selectedUser && (
+                <UserDetailPanel
+                  user={selectedUser}
+                  onClose={onAccountClose}
+                  theme={t}
+                  compact
+                  reportContext={activeReportContext}
+                  onExtendTrial={onExtendTrial}
+                  isExtendingTrial={isExtendingTrial}
+                  isLoadingDetails={isLoadingUserDetails}
+                />
+              )}
+            </div>
+          ) : null
         ) : (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {/* User header */}
@@ -816,27 +1272,8 @@ export default function UserReportsInbox({
               </ChipButton>
               {accountExpanded && (
                 <p style={{ margin: '6px 0 0', fontSize: '10px', color: t.textLight, lineHeight: 1.4 }}>
-                  {accountFocusMode
-                    ? 'Full-width for tools — tap below to return to the conversation'
-                    : 'Auto-loaded from report — sync or grant here'}
+                  Auto-loaded from report — sync or grant here
                 </p>
-              )}
-              {accountFocusMode && showConversationPane && (
-                <ChipButton
-                  active={false}
-                  onClick={() => setAccountExpanded(false)}
-                  style={{
-                    width: '100%',
-                    justifyContent: 'center',
-                    marginTop: '8px',
-                    padding: '6px 12px',
-                    fontSize: '11px',
-                  }}
-                  title="Return to conversation"
-                >
-                  <ChatCircle size={14} />
-                  Back to conversation
-                </ChipButton>
               )}
             </div>
 
@@ -879,114 +1316,57 @@ export default function UserReportsInbox({
                 )}
               </div>
             ) : (
-            /* Scrollable section: ticket cards + action controls */
+            /* Compact report chips + action controls (chat is the blended timeline) */
             <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-              {/* Ticket cards */}
-              <div style={{ borderBottom: `1px solid ${t.border}` }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  padding: '10px 14px',
+                  borderBottom: `1px solid ${t.border}`,
+                  overflowX: 'auto',
+                  flexShrink: 0,
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
                 {(selectedGroup?.items || []).map((item) => {
                   const key = itemKey(item);
                   const isSelected = key === selectedKey;
-                  const statusPill = item.adminStatus ? STATUS_PILL[item.adminStatus] : null;
                   return (
                     <button
                       key={key}
                       type="button"
                       onClick={() => onSelectItem(item)}
+                      title={item.message}
                       style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '10px 14px',
-                        border: 'none',
-                        borderBottom: `1px solid ${t.border}`,
-                        borderLeft: isSelected ? `3px solid ${t.primary}` : '3px solid transparent',
-                        backgroundColor: isSelected
-                          ? (t.primary + '12')
-                          : item.unread
-                            ? (t.primary + '08')
-                            : 'transparent',
+                        flex: '0 0 auto',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '6px 10px',
+                        borderRadius: '999px',
+                        border: `1px solid ${isSelected ? t.primary : t.border}`,
+                        backgroundColor: isSelected ? `${t.primary}18` : t.cardBackground,
                         cursor: 'pointer',
-                        transition: 'background 0.12s',
+                        maxWidth: '220px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                        {item.unread && (
-                          <span
-                            title="Unread"
-                            style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: t.primary,
-                              flexShrink: 0,
-                            }}
-                          />
-                        )}
-                        <TypePill typeLabel={item.typeLabel} />
-                        {item.ticketNumber && (
-                          <span style={{
-                            fontSize: '10px',
-                            fontWeight: item.unread ? '800' : '700',
-                            color: t.textLight,
-                          }}>
-                            #{item.ticketNumber}
-                          </span>
-                        )}
-                        {statusPill && (
-                          <span style={{
-                            fontSize: '9px',
-                            fontWeight: '700',
-                            padding: '1px 6px',
-                            borderRadius: '999px',
-                            backgroundColor: statusPill.bg,
-                            color: statusPill.color,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.02em',
-                          }}>
-                            {statusPill.label}
-                          </span>
-                        )}
-                        <span style={{
-                          fontSize: '10px',
-                          color: t.textLight,
-                          marginLeft: 'auto',
-                          fontWeight: item.unread ? '700' : '400',
-                        }}>
-                          {formatRelativeTime(item.dateMs)}
-                        </span>
-                      </div>
-                      <p style={{
-                        margin: 0,
-                        fontSize: '12px',
-                        color: item.unread ? t.text : t.textLight,
-                        fontWeight: item.unread ? '600' : '400',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {item.message}
-                      </p>
-                      {item.adminNotes ? (
-                        <p style={{
-                          margin: '4px 0 0',
-                          fontSize: '10px',
-                          color: t.textLight,
-                          fontStyle: 'italic',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          Note: {item.adminNotes}
-                        </p>
-                      ) : null}
+                      {item.unread && (
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: t.primary, flexShrink: 0 }} />
+                      )}
+                      <TypePill typeLabel={item.typeLabel} />
+                      {item.ticketNumber && (
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: t.textLight }}>#{item.ticketNumber}</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Action controls for selected ticket */}
+              {/* Action controls for selected report context */}
               {!selectedQueueItem ? (
                 <div style={{ padding: '20px 14px', textAlign: 'center', color: t.textLight, fontSize: '12px' }}>
-                  Select a report above to take action
+                  Loading reports…
                 </div>
               ) : (
                 <div style={{ padding: '14px' }}>
@@ -1075,19 +1455,191 @@ export default function UserReportsInbox({
             )}
           </div>
         )}
-      </div>
 
-      {/* ═══ COL 3 — Conversation + Reply (hidden on narrow while Account is open) ═══ */}
-      {showConversationPane && selectedUserEmail && !accountFocusMode && (
+        {/* Mobile admin tools sheet — keeps chat viewport clean */}
+        {isNarrow && selectedUserEmail && mobileToolsOpen && !accountExpanded && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 80,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              backgroundColor: 'rgba(0,0,0,0.4)',
+            }}
+            onClick={() => setMobileToolsOpen(false)}
+            role="presentation"
+          >
+            <div
+              role="dialog"
+              aria-label="Admin tools"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxHeight: '78vh',
+                overflowY: 'auto',
+                overscrollBehavior: 'contain',
+                backgroundColor: t.cardBackground || '#fff',
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                padding: '12px 14px calc(16px + env(safe-area-inset-bottom, 0px))',
+                boxShadow: '0 -8px 28px rgba(0,0,0,0.18)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Admin tools</div>
+                <button
+                  type="button"
+                  onClick={() => setMobileToolsOpen(false)}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    border: `1px solid ${t.border}`,
+                    backgroundColor: t.background || '#F9FAFB',
+                    color: t.textLight,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  aria-label="Close tools"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                {selectedQueueItem && !selectedTicket?.markedFixed && (
+                  <ConfirmChip
+                    label="Close all"
+                    confirmLabel="Tap again to close all reports"
+                    armed={closeArmed}
+                    onArm={() => setCloseArmed(true)}
+                    onConfirm={onCloseTicket}
+                    loading={closingTicket}
+                    variant="success"
+                  />
+                )}
+                {selectedQueueItem && isFeedback && selectedQueueItem.feedbackStatus === 'new' && onMarkReviewed && (
+                  <ChipButton loading={markingReviewed} onClick={onMarkReviewed} style={{ fontSize: 11 }}>
+                    Mark reviewed
+                  </ChipButton>
+                )}
+                {selectedQueueItem && selectedIsUnread && onMarkRead && (
+                  <ChipButton onClick={onMarkRead} style={{ fontSize: 11 }}>
+                    Mark read
+                  </ChipButton>
+                )}
+                {selectedQueueItem && !selectedIsUnread && onMarkUnread && (
+                  <ChipButton onClick={onMarkUnread} style={{ fontSize: 11 }}>
+                    Mark unread
+                  </ChipButton>
+                )}
+              </div>
+
+              {!selectedQueueItem ? (
+                <p style={{ fontSize: 12, color: t.textLight, margin: 0 }}>Select a report first.</p>
+              ) : (
+                <>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: t.textLight, display: 'block', marginBottom: 5 }}>
+                      Internal status
+                    </label>
+                    <CustomDropdown
+                      value={adminStatus || ''}
+                      onChange={(val) => onStatusChange(val || null)}
+                      options={adminStatusOptions}
+                      placeholder="Set status"
+                      theme={t}
+                      outlined
+                      customShadow
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: t.textLight, display: 'block', marginBottom: 6 }}>
+                      Quick replies
+                    </label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {quickResponses.map((response) => (
+                        <ChipButton
+                          key={response.id}
+                          active={(adminStatus || selectedTicket?.adminStatus) === response.id}
+                          onClick={() => onQuickResponse(response)}
+                          style={{ padding: '5px 10px', fontSize: 11 }}
+                        >
+                          {response.label.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim()}
+                        </ChipButton>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: t.textLight, display: 'block', marginBottom: 5 }}>
+                      Internal notes
+                    </label>
+                    <textarea
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Where you left off, what you’re waiting on…"
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        border: `1px solid ${t.border}`,
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                        color: t.text,
+                        backgroundColor: t.background || '#F9FAFB',
+                        resize: 'vertical',
+                        boxSizing: 'border-box',
+                        fontFamily: 'inherit',
+                      }}
+                    />
+                    {savingNotes && (
+                      <span style={{ fontSize: 10, color: t.primary, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <CircleNotch size={10} style={{ animation: 'spin 1s linear infinite' }} /> Saving…
+                      </span>
+                    )}
+                  </div>
+
+                  {onDelete && (
+                    <div style={{ paddingTop: 12, borderTop: `1px solid ${t.border}` }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#991B1B', marginBottom: 8, textTransform: 'uppercase' }}>
+                        Danger zone
+                      </div>
+                      <ConfirmChip
+                        label={selectedQueueItem.typeLabel === 'Deletion' ? 'Process deletion' : 'Delete report'}
+                        confirmLabel="Tap again to delete"
+                        armed={deleteArmed}
+                        onArm={() => setDeleteArmed(true)}
+                        onConfirm={onDelete}
+                        loading={deleting}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* ═══ COL 3 — Conversation + Reply (chat-first on narrow) ═══ */}
+      {showDetailPane && showConversationPane && selectedUserEmail && !accountFocusMode && (
       <div
         style={{
-          flex: '1 1 360px',
-          minWidth: 280,
-          maxWidth: 'min(520px, 48vw)',
+          flex: stackDetailPanes ? '1 1 auto' : '1 1 0',
+          minWidth: stackDetailPanes ? 0 : 320,
+          maxWidth: '100%',
+          width: stackDetailPanes ? '100%' : undefined,
           display: 'flex',
           flexDirection: 'column',
           minHeight: 0,
-          backgroundColor: t.cardBackground,
+          ...panelCardStyle,
         }}
       >
           <>
@@ -1096,181 +1648,85 @@ export default function UserReportsInbox({
               style={{
                 flex: 1,
                 overflowY: 'auto',
-                padding: '16px 20px',
-                backgroundColor: t.background,
+                padding: isNarrow ? '12px 14px' : '14px 16px',
+                backgroundColor: t.background || '#F9FAFB',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '10px',
+                gap: '12px',
+                WebkitOverflowScrolling: 'touch',
               }}
             >
-              {/* Original report bubble — shown when a specific ticket is selected */}
-              {selectedQueueItem && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
-                  <div
-                    style={{
-                      maxWidth: '85%',
-                      padding: '10px 14px',
-                      borderRadius: '12px',
-                      borderTopRightRadius: '3px',
-                      backgroundColor: t.accent || (t.primary + '20'),
-                      borderRight: `3px solid ${t.primary}`,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                      <User size={12} style={{ color: t.primary }} />
-                      <span style={{ fontSize: '10px', fontWeight: '600', color: t.primary }}>User</span>
-                      <TypePill typeLabel={selectedQueueItem.typeLabel} />
-                      {selectedQueueItem.ticketNumber && (
-                        <span style={{ fontSize: '10px', fontWeight: '700', color: t.textLight }}>
-                          #{selectedQueueItem.ticketNumber}
-                        </span>
-                      )}
-                      <span style={{ fontSize: '10px', color: t.textLight, opacity: 0.6, marginLeft: '4px' }}>
-                        {formatRelativeTime(selectedQueueItem.dateMs)}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: t.text }}>
-                      {selectedQueueItem.message}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Full merged thread (support tickets) OR feedback admin replies */}
-              {!isFeedback && selectedTicket?.ticketId ? (
-                renderItems.length === 0 ? (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center' }}>
-                      No replies yet — send a reply on the right.
-                    </p>
-                  </div>
-                ) : (
-                  renderItems.map((item) => {
-                    if (item.type === 'divider') {
-                      return (
-                        <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
-                          <div style={{ flex: 1, height: '1px', backgroundColor: t.border }} />
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                            <span style={{ fontSize: '10px', fontWeight: '700', padding: '3px 8px', borderRadius: '999px', backgroundColor: item.tc.bg, color: item.tc.color, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                              {msgTypeLabel(item.ticketType)}
-                            </span>
-                            <span style={{ fontSize: '11px', fontWeight: '600', color: t.textLight }}>#{item.ticketNumber}</span>
-                            {item.date && <span style={{ fontSize: '11px', color: t.textLight }}>· {formatMsgDate(item.date)}</span>}
-                            {(item.ticketStatus === 'closed' || item.ticketStatus === 'resolved') && (
-                              <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '999px', backgroundColor: t.isDark ? '#ffffff10' : '#00000010', color: t.textLight }}>
-                                closed
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ flex: 1, height: '1px', backgroundColor: t.border }} />
-                        </div>
-                      );
-                    }
-                    const { msg } = item;
-                    const isAdmin =
-                      msg.senderType === 'admin' || msg.senderType === 'ghost-worker' ||
-                      msg.senderEmail?.includes('admin') || msg.senderEmail?.includes('thepepplanner.com');
-                    const msgDate = formatMsgDate(msg.createdAt);
-                    return (
-                      <div key={item.key} style={{ display: 'flex', justifyContent: isAdmin ? 'flex-start' : 'flex-end' }}>
-                        <div
-                          style={{
-                            maxWidth: '80%', padding: '10px 14px', borderRadius: '12px',
-                            borderTopLeftRadius: isAdmin ? '3px' : '12px',
-                            borderTopRightRadius: isAdmin ? '12px' : '3px',
-                            backgroundColor: isAdmin ? (t.primary + '15') : (t.accent || t.primary + '20'),
-                            borderLeft: isAdmin ? `3px solid ${t.primary}` : 'none',
-                            borderRight: !isAdmin ? `3px solid ${t.primary}` : 'none',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                            {isAdmin ? <ShieldCheck size={12} style={{ color: t.primary }} /> : <User size={12} style={{ color: t.primary }} />}
-                            <span style={{ fontSize: '10px', fontWeight: '600', color: t.primary }}>
-                              {isAdmin ? 'The Pep Planner Team' : 'User'}
-                            </span>
-                            {msgDate && <span style={{ fontSize: '10px', color: t.textLight, opacity: 0.6, marginLeft: '4px' }}>{msgDate}</span>}
-                          </div>
-                          <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: t.text }}>
-                            {msg.message || msg.text}
-                          </p>
-                          {msg.imageUrls?.length > 0 && (
-                            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              {msg.imageUrls.map((url, i) => (
-                                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                                  <img src={url} alt={`Screenshot ${i + 1}`} style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: `1px solid ${t.border}` }} loading="lazy" />
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )
-              ) : isFeedback ? (
-                fromTheTeamLoading && feedbackAdminReplies.length === 0 ? (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center', lineHeight: 1.6 }}>
-                      Loading From the Team history…
-                    </p>
-                  </div>
-                ) : feedbackAdminReplies.length === 0 ? (
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center', lineHeight: 1.6 }}>
-                      No From the Team replies yet — your reply will show here and on their dashboard.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {fromTheTeamMessages.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0 8px' }}>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: t.border }} />
-                        <span style={{ fontSize: '10px', fontWeight: '700', color: t.textLight, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          From the Team · {feedbackAdminReplies.length}
-                        </span>
-                        <div style={{ flex: 1, height: '1px', backgroundColor: t.border }} />
-                      </div>
-                    )}
-                    {feedbackAdminReplies.map((reply) => {
-                      const msgDate = formatMsgDate(reply.createdAt);
-                      return (
-                        <div key={reply.key} style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                          <div
-                            style={{
-                              maxWidth: '80%',
-                              padding: '10px 14px',
-                              borderRadius: '12px',
-                              borderTopLeftRadius: '3px',
-                              backgroundColor: t.primary + '15',
-                              borderLeft: `3px solid ${t.primary}`,
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
-                              <ShieldCheck size={12} style={{ color: t.primary }} />
-                              <span style={{ fontSize: '10px', fontWeight: '600', color: t.primary }}>
-                                The Pep Planner Team
-                              </span>
-                              {msgDate && (
-                                <span style={{ fontSize: '10px', color: t.textLight, opacity: 0.6, marginLeft: '4px' }}>
-                                  {msgDate}
-                                </span>
-                              )}
-                            </div>
-                            <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: t.text }}>
-                              {reply.message}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </>
-                )
-              ) : (
+              {/* One blended inbox for this user */}
+              {renderItems.length === 0 ? (
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center', lineHeight: 1.6 }}>
-                    No conversation yet.
+                  <p style={{ fontSize: '13px', color: t.textLight, textAlign: 'center' }}>
+                    {fromTheTeamLoading ? 'Loading conversation…' : 'No messages yet — reply below to start their Support inbox thread.'}
                   </p>
                 </div>
+              ) : (
+                renderItems.map((item) => {
+                  if (item.type === 'divider') {
+                    return (
+                      <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: t.border }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          <span style={{ fontSize: '10px', fontWeight: '700', padding: '3px 8px', borderRadius: '999px', backgroundColor: item.tc.bg, color: item.tc.color, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                            {msgTypeLabel(item.ticketType)}
+                          </span>
+                          {item.ticketNumber && (
+                            <span style={{ fontSize: '11px', fontWeight: '600', color: t.textLight }}>#{item.ticketNumber}</span>
+                          )}
+                          {item.date && <span style={{ fontSize: '11px', color: t.textLight }}>· {formatMsgDate(item.date)}</span>}
+                          {(item.ticketStatus === 'closed' || item.ticketStatus === 'resolved') && (
+                            <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '999px', backgroundColor: t.isDark ? '#ffffff10' : '#00000010', color: t.textLight }}>
+                              closed
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: t.border }} />
+                      </div>
+                    );
+                  }
+                  const { msg } = item;
+                  const isAdmin =
+                    msg.senderType === 'admin' || msg.senderType === 'ghost-worker' ||
+                    msg.senderEmail?.includes('admin') || msg.senderEmail?.includes('thepepplanner.com');
+                  const msgDate = formatMsgDate(msg.createdAt);
+                  return (
+                    <div key={item.key} style={{ display: 'flex', justifyContent: isAdmin ? 'flex-end' : 'flex-start' }}>
+                      <div
+                        style={{
+                          maxWidth: '80%', padding: '10px 14px', borderRadius: '12px',
+                          borderTopLeftRadius: isAdmin ? '12px' : '3px',
+                          borderTopRightRadius: isAdmin ? '3px' : '12px',
+                          backgroundColor: isAdmin ? (t.primary + '15') : (t.accent || t.primary + '20'),
+                          borderLeft: !isAdmin ? `3px solid ${t.primary}` : 'none',
+                          borderRight: isAdmin ? `3px solid ${t.primary}` : 'none',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
+                          {isAdmin ? <ShieldCheck size={12} style={{ color: t.primary }} /> : <User size={12} style={{ color: t.primary }} />}
+                          <span style={{ fontSize: '10px', fontWeight: '600', color: t.primary }}>
+                            {isAdmin ? 'The Pep Planner Team' : 'User'}
+                          </span>
+                          {msgDate && <span style={{ fontSize: '10px', color: t.textLight, opacity: 0.6, marginLeft: '4px' }}>{msgDate}</span>}
+                        </div>
+                        <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: t.text }}>
+                          {msg.message || msg.text}
+                        </p>
+                        {msg.imageUrls?.length > 0 && (
+                          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {msg.imageUrls.map((url, i) => (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                                <img src={url} alt={`Screenshot ${i + 1}`} style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: `1px solid ${t.border}` }} loading="lazy" />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
               )}
               <div ref={conversationEndRef} />
             </div>
@@ -1279,42 +1735,59 @@ export default function UserReportsInbox({
             <div
               style={{
                 borderTop: `1px solid ${t.border}`,
-                padding: '12px 16px',
+                padding: isNarrow ? '10px 12px calc(10px + env(safe-area-inset-bottom, 0px))' : '12px 16px',
                 flexShrink: 0,
                 backgroundColor: t.cardBackground,
               }}
             >
-              <textarea
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                placeholder={isFeedback ? 'Reply appears as From the Team…' : selectedQueueItem ? `Reply to ${selectedQueueItem.email}…` : 'Select a report to reply…'}
-                rows={3}
-                disabled={!selectedQueueItem}
+              <div
                 style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '10px',
+                  position: 'relative',
+                  borderRadius: '12px',
                   border: `1px solid ${t.border}`,
-                  fontSize: '13px',
-                  lineHeight: 1.5,
-                  color: t.text,
                   backgroundColor: t.cardBackground,
-                  resize: 'none',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
                   opacity: selectedQueueItem ? 1 : 0.5,
                 }}
-              />
-              <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
-                <ChipButton
-                  variant="send"
-                  onClick={onSendReply}
-                  disabled={!customMessage.trim() || !selectedQueueItem}
-                  loading={sending}
-                  style={{ padding: '7px 18px' }}
+              >
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  placeholder={selectedQueueItem ? `Reply to ${selectedQueueItem.email}…` : 'Select a user to reply…'}
+                  rows={isNarrow ? 2 : 3}
+                  disabled={!selectedQueueItem}
+                  style={{
+                    width: '100%',
+                    padding: isNarrow ? '10px 12px 44px' : '12px 14px 48px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '13px',
+                    lineHeight: 1.5,
+                    color: t.text,
+                    backgroundColor: 'transparent',
+                    resize: 'none',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    display: 'block',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    bottom: '8px',
+                  }}
                 >
-                  <PaperPlaneTilt size={14} /> PaperPlaneTilt Reply
-                </ChipButton>
+                  <ChipButton
+                    variant="send"
+                    onClick={onSendReply}
+                    disabled={!customMessage.trim() || !selectedQueueItem}
+                    loading={sending}
+                    style={{ padding: '7px 16px' }}
+                  >
+                    <PaperPlaneTilt size={14} /> Reply
+                  </ChipButton>
+                </div>
               </div>
             </div>
           </>
