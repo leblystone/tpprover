@@ -39,7 +39,7 @@ export default function ShopVault() {
             The Vault
           </p>
           <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4" style={{ color: '#2F3B3A' }}>
-            The Pep Planner; History
+            Our History
           </h1>
           <p className="text-sm max-w-2xl mx-auto leading-relaxed" style={{ color: '#6B7575' }}>
             Welcome to the archived designs of the Pep Planner — a look at creative history. These covers laid the
@@ -62,11 +62,14 @@ export default function ShopVault() {
       </section>
 
       <CustomWorkShowcaseSection
-        title="Custom Work for the Community"
+        eyebrow="Community"
+        title="Custom work for the community"
+        subtitle="Covers we've made with groups and brands — explore archived editions in The Vault above."
         marqueeId="vault-community-marquee"
         durationSec={55}
         sectionBg={WARM_GREIGE}
         fadeColor={WARM_GREIGE}
+        showVaultCta={false}
       />
 
       <section className="py-16 px-5 text-center" style={{ backgroundColor: SAGE_CTA }}>

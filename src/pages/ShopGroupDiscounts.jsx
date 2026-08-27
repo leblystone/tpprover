@@ -1,4 +1,5 @@
 import React from 'react';
+import { UsersThree, Ticket, ShoppingBag } from '@phosphor-icons/react';
 import ShopHeader from '../components/shop/ShopHeader';
 import InquiryForm from '../components/shop/InquiryForm';
 import LandingFooter from '../components/layout/LandingFooter';
@@ -14,9 +15,9 @@ const WARM_GREIGE = '#F5F5F0';
 const SAGE_PANEL = '#ECF2ED';
 
 const HOW = [
-  { step: '01', title: 'Tell me about your community', desc: 'Drop your group name, platform, and roughly how many members are active researchers.' },
-  { step: '02', title: 'Get a custom discount code', desc: "I'll send a code your members can use at checkout — on planners, digital downloads, whatever fits." },
-  { step: '03', title: 'Everyone orders on their own', desc: 'No bulk order, no coordinator headaches. Share the code and let your people grab what they need.' },
+  { Icon: UsersThree, title: 'Tell me about your community', desc: 'Drop your group name, platform, and roughly how many members are active researchers.' },
+  { Icon: Ticket, title: 'Get a custom discount code', desc: "I'll send a code your members can use at checkout — on planners, digital downloads, whatever fits." },
+  { Icon: ShoppingBag, title: 'Everyone orders on their own', desc: 'No bulk order, no coordinator headaches. Share the code and let your people grab what they need.' },
 ];
 
 const GROUPS = [
@@ -79,16 +80,16 @@ export default function ShopGroupDiscounts() {
           </h2>
           <div className="relative flex items-start justify-between gap-2">
             <div
-              className="absolute top-4 left-[calc(16.67%-0px)] right-[calc(16.67%-0px)] h-px"
+              className="absolute top-6 left-[calc(16.67%-0px)] right-[calc(16.67%-0px)] h-px"
               style={{ backgroundColor: '#DDE6DE' }}
             />
-            {HOW.map(({ step, title, desc }) => (
-              <div key={step} className="relative flex flex-col items-center text-center flex-1 px-2">
+            {HOW.map(({ Icon, title, desc }) => (
+              <div key={title} className="relative flex flex-col items-center text-center flex-1 px-2">
                 <div
-                  className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mb-3 relative z-10"
-                  style={{ backgroundColor: '#7F9E95' }}
+                  className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center mb-3 relative z-10"
+                  style={{ backgroundColor: '#EFF2EE', border: '1px solid #DDE6DE' }}
                 >
-                  {step}
+                  <Icon className="w-7 h-7" weight="duotone" style={{ color: '#7F9E95' }} />
                 </div>
                 <h3 className="text-xs font-bold mb-1 leading-snug" style={{ color: '#2F3B3A' }}>
                   {title}

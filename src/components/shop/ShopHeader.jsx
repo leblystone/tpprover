@@ -1,36 +1,51 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Bag, UserCircle } from '@phosphor-icons/react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Bag, CaretDown } from '@phosphor-icons/react';
 import { themes, defaultThemeName } from '../../theme/themes';
 import logo from '../../assets/tpp_logo.png';
 import CartBadge from './CartBadge';
 import PublicMobileNavDrawer from '../layout/PublicMobileNavDrawer';
+import { APP_LINKS, PAPER_PLANNER_LINKS } from '../../config/publicNavConfig';
 
 const theme = themes[defaultThemeName];
-const navLinks = [['/', 'THE APP'], ['/shop', 'SHOP'], ['/pricing', 'PRICING'], ['/faq', 'FAQ']];
 
-function AccountLoginButton({ onNavigate, className = '', size = 26 }) {
-  const navigate = useNavigate();
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        onNavigate?.();
-        navigate('/login');
-      }}
-      aria-label="Log in to your account"
-      className={`p-2 rounded-lg transition-opacity hover:opacity-70 ${className}`}
-      style={{ color: theme.primary }}
-    >
-      <UserCircle size={size} weight="duotone" />
-    </button>
-  );
-}
+const NAV_ITEMS = [
+  ...APP_LINKS.slice(0, 2),
+  { path: '/shop', label: 'Shop', hasChildren: true },
+  APP_LINKS[2],
+];
 
 export default function ShopHeader({ cartCount = 0, onCartOpen }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+  const shopCloseTimer = useRef(null);
   const close = () => setMobileOpen(false);
+
+  const isActive = (path) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
+
+  const openShop = () => {
+    clearTimeout(shopCloseTimer.current);
+    setShopOpen(true);
+  };
+
+  const scheduleCloseShop = () => {
+    clearTimeout(shopCloseTimer.current);
+    shopCloseTimer.current = setTimeout(() => setShopOpen(false), 150);
+  };
+
+  useEffect(() => () => clearTimeout(shopCloseTimer.current), []);
+
+  useEffect(() => {
+    if (!shopOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShopOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [shopOpen]);
 
   return (
     <>
@@ -86,7 +101,6 @@ export default function ShopHeader({ cartCount = 0, onCartOpen }) {
             </button>
 
             <div className="flex items-center gap-0.5">
-              <AccountLoginButton onNavigate={close} size={24} />
               {onCartOpen && (
                 <button type="button" onClick={onCartOpen} className="relative p-2" style={{ color: theme.text }}>
                   <Bag size={22} weight="duotone" />
@@ -98,10 +112,9 @@ export default function ShopHeader({ cartCount = 0, onCartOpen }) {
             </div>
           </div>
 
-          {/* Desktop — account icon left of logo */}
+          {/* Desktop */}
           <div className="hidden lg:flex items-center h-[68px]">
             <div className="flex items-center gap-4 flex-shrink-0 mr-8">
-              <AccountLoginButton size={28} />
               <button type="button" onClick={() => navigate('/')} className="flex-shrink-0">
                 <img
                   src={logo}
@@ -112,17 +125,94 @@ export default function ShopHeader({ cartCount = 0, onCartOpen }) {
               </button>
             </div>
 
-            <nav className="flex items-center gap-5 flex-1">
-              {navLinks.map(([path, label]) => (
-                <Link
-                  key={path}
-                  to={path}
-                  className="public-nav-link px-3 py-2 rounded-lg text-[11px] font-bold tracking-[0.13em] uppercase"
-                  style={{ color: theme.text }}
-                >
-                  {label}
-                </Link>
-              ))}
+            <nav className="flex items-center gap-5 flex-1" aria-label="Primary">
+              {NAV_ITEMS.map(({ path, label, hasChildren }) => {
+                const active = isActive(path);
+                const linkStyle = {
+                  color: active ? theme.primaryDark || theme.primary : theme.text,
+                  fontWeight: active ? 700 : 600,
+                  letterSpacing: '0.12em',
+                  textDecoration: 'none',
+                };
+
+                if (hasChildren) {
+                  return (
+                    <div
+                      key={path}
+                      className="relative"
+                      onMouseEnter={openShop}
+                      onMouseLeave={scheduleCloseShop}
+                    >
+                      <button
+                        type="button"
+                        aria-expanded={shopOpen}
+                        aria-haspopup="true"
+                        onClick={() => setShopOpen((o) => !o)}
+                        className={`public-nav-link flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold tracking-[0.13em] uppercase${active ? ' is-active' : ''}`}
+                        style={linkStyle}
+                      >
+                        {label}
+                        <CaretDown
+                          size={12}
+                          weight="bold"
+                          style={{
+                            opacity: 0.55,
+                            transition: 'transform 0.2s',
+                            transform: shopOpen ? 'rotate(180deg)' : 'none',
+                          }}
+                        />
+                      </button>
+                      {shopOpen && (
+                        <div
+                          className="absolute left-0 top-full pt-1 z-[110]"
+                          onMouseEnter={openShop}
+                          onMouseLeave={scheduleCloseShop}
+                        >
+                          <div
+                            className="min-w-[220px] py-2 rounded-xl shadow-lg"
+                            style={{
+                              backgroundColor: '#FFFFFF',
+                              border: '1px solid #DDE6DE',
+                            }}
+                          >
+                            {PAPER_PLANNER_LINKS.map(({ path: sp, label: sl }) => {
+                              const subActive = sp === '/shop'
+                                ? location.pathname === sp
+                                : location.pathname.startsWith(sp);
+                              return (
+                                <Link
+                                  key={sp}
+                                  to={sp}
+                                  onClick={() => setShopOpen(false)}
+                                  className={`public-nav-link block mx-1.5 px-3 py-2.5 rounded-lg text-sm font-bold uppercase${subActive ? ' is-active' : ''}`}
+                                  style={{
+                                    color: subActive ? theme.primaryDark || theme.primary : theme.text,
+                                    letterSpacing: '0.1em',
+                                    textDecoration: 'none',
+                                  }}
+                                >
+                                  {sl}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    className={`public-nav-link px-3 py-2 rounded-lg text-[11px] font-bold tracking-[0.13em] uppercase${active ? ' is-active' : ''}`}
+                    style={linkStyle}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
             </nav>
 
             <div className="flex items-center gap-5">

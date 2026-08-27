@@ -4,20 +4,12 @@ import { CaretDown } from '@phosphor-icons/react';
 import logo from '../../assets/tpp_logo.png';
 import { themes, defaultThemeName } from '../../theme/themes';
 import PublicMobileNavDrawer from './PublicMobileNavDrawer';
-
-const SHOP_SUB_ITEMS = [
-  { path: '/shop',                 label: 'Shop All',         end: true },
-  { path: '/shop/custom',          label: 'Custom Orders' },
-  { path: '/shop/wholesale',       label: 'Bulk & Wholesale' },
-  { path: '/shop/group-discounts', label: 'Group Discounts' },
-  { path: '/shop/vault',           label: 'The Vault' },
-];
+import { APP_LINKS, PAPER_PLANNER_LINKS } from '../../config/publicNavConfig';
 
 const NAV_ITEMS = [
-  { path: '/',        label: 'Home' },
-  { path: '/pricing', label: 'Pricing' },
-  { path: '/shop',    label: 'Shop', hasChildren: true },
-  { path: '/faq',     label: 'FAQ' },
+  ...APP_LINKS.slice(0, 2).map(({ path, label }) => ({ path, label })),
+  { path: '/shop', label: 'Shop', hasChildren: true },
+  APP_LINKS[2],
 ];
 
 export default function LandingHeader() {
@@ -125,20 +117,24 @@ export default function LandingHeader() {
             </button>
 
             {/* Log In + Sign Up */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => { close(); navigate('/login'); }}
-                className="text-xs font-bold uppercase transition-opacity hover:opacity-60"
-                style={{ color: theme.primary, letterSpacing: '0.12em' }}
+                className="px-2.5 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-60"
+                style={{ color: theme.text }}
               >
                 Log In
               </button>
               <button
                 type="button"
                 onClick={() => { close(); navigate('/login?trial=true'); }}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase shadow-sm btn-primary-inset"
-                style={{ backgroundColor: theme.primary, color: '#FFFFFF', letterSpacing: '0.12em' }}
+                className="px-3.5 py-2 rounded-xl text-[11px] font-bold uppercase tracking-[0.1em] transition-all hover:opacity-90 active:scale-[0.98]"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: '#FFFFFF',
+                  boxShadow: '0 2px 8px rgba(127,158,149,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+                }}
               >
                 Sign Up
               </button>
@@ -198,8 +194,8 @@ export default function LandingHeader() {
                               border: '1px solid #DDE6DE',
                             }}
                           >
-                            {SHOP_SUB_ITEMS.map(({ path: sp, label: sl, end }) => {
-                              const subActive = end
+                            {PAPER_PLANNER_LINKS.map(({ path: sp, label: sl }) => {
+                              const subActive = sp === '/shop'
                                 ? location.pathname === sp
                                 : location.pathname.startsWith(sp);
                               return (

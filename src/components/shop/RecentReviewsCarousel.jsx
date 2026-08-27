@@ -30,7 +30,7 @@ export default function RecentReviewsCarousel({ fadeColor = FADE }) {
   if (error || reviews.length === 0) return null;
 
   return (
-    <section className="relative py-14 sm:py-16" style={{ backgroundColor: fadeColor }}>
+    <section className="relative pt-6 pb-14 sm:pt-8 sm:pb-16" style={{ backgroundColor: fadeColor }}>
       <div className="max-w-6xl mx-auto px-5 sm:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>

@@ -101,12 +101,6 @@ export default function ReviewCarousel({
         </div>
       </div>
 
-      <p className="text-center text-[10px] mt-2 tracking-wide" style={{ color: `${PRIMARY}99` }}>
-        {canAnimate
-          ? 'Auto-scrolling · hover to pause · tap a card to read'
-          : 'Swipe for more · tap a card to read'}
-      </p>
-
       <style>{`
         @keyframes review-marquee-scroll {
           from { transform: translateX(0); }

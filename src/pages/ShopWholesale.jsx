@@ -1,6 +1,8 @@
 import React from 'react';
+import { Chats, Tag, Mailbox } from '@phosphor-icons/react';
 import ShopHeader from '../components/shop/ShopHeader';
 import InquiryForm from '../components/shop/InquiryForm';
+import CustomWorkShowcaseSection from '../components/shop/CustomWorkShowcaseSection';
 import LandingFooter from '../components/layout/LandingFooter';
 import { useCart } from '../context/CartContext';
 import { usePageSEO } from '../utils/pageSEO';
@@ -14,9 +16,9 @@ const WARM_GREIGE = '#F5F5F0';
 const SAGE_PANEL = '#ECF2ED';
 
 const HOW = [
-  { step: '01', title: 'Share your needs', desc: 'Tell us your quantity, which planners you want, and whether you need your logo on the cover.' },
-  { step: '02', title: 'Get bulk pricing', desc: 'We’ll follow up with volume rates, branding options, and invoice details.' },
-  { step: '03', title: 'Order & ship', desc: 'Approve your quote, place the order, and we’ll get your planners on the way.' },
+  { Icon: Chats, title: 'Share your needs', desc: 'Tell us your quantity, which planners you want, and whether you need your logo on the cover.' },
+  { Icon: Tag, title: 'Get bulk pricing', desc: 'We’ll follow up with volume rates, branding options, and invoice details.' },
+  { Icon: Mailbox, title: 'Order & ship', desc: 'Approve your quote, place the order, and we’ll get your planners on the way.' },
 ];
 
 const WHO = [
@@ -121,14 +123,14 @@ export default function ShopWholesale() {
             How It Works
           </h2>
           <div className="relative flex items-start justify-between gap-2">
-            <div className="absolute top-4 left-[calc(16.67%-0px)] right-[calc(16.67%-0px)] h-px" style={{ backgroundColor: '#DDE6DE' }} />
-            {HOW.map(({ step, title, desc }) => (
-              <div key={step} className="relative flex flex-col items-center text-center flex-1 px-2">
+            <div className="absolute top-6 left-[calc(16.67%-0px)] right-[calc(16.67%-0px)] h-px" style={{ backgroundColor: '#DDE6DE' }} />
+            {HOW.map(({ Icon, title, desc }) => (
+              <div key={title} className="relative flex flex-col items-center text-center flex-1 px-2">
                 <div
-                  className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white mb-3 relative z-10"
-                  style={{ backgroundColor: '#7F9E95' }}
+                  className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center mb-3 relative z-10"
+                  style={{ backgroundColor: '#EFF2EE', border: '1px solid #DDE6DE' }}
                 >
-                  {step}
+                  <Icon className="w-7 h-7" weight="duotone" style={{ color: '#7F9E95' }} />
                 </div>
                 <h3 className="text-xs font-bold mb-1 leading-snug" style={{ color: '#2F3B3A' }}>{title}</h3>
                 <p className="text-[11px] leading-relaxed" style={{ color: '#6B7575' }}>{desc}</p>
@@ -137,6 +139,16 @@ export default function ShopWholesale() {
           </div>
         </div>
       </section>
+
+      <CustomWorkShowcaseSection
+        eyebrow="Community work"
+        title="See what we've made for others"
+        subtitle="Custom covers shipped for clinics, groups, and brands — more history lives in The Vault."
+        marqueeId="wholesale-community-marquee"
+        durationSec={70}
+        sectionBg={WARM_GREIGE}
+        fadeColor={WARM_GREIGE}
+      />
 
       <section className="py-10 px-5" style={{ backgroundColor: SAGE_PANEL }}>
         <div className="max-w-lg mx-auto">

@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { BookOpen, Package, Download, X, Check } from 'lucide-react';
-import { Bag, UserCircle } from '@phosphor-icons/react';
 import CartPanel from '../components/shop/CartPanel';
 import CartBadge from '../components/shop/CartBadge';
 import QtyPicker from '../components/shop/QtyPicker';
 import NotifyButton, { NOTIFY_BUTTON_KEYFRAMES } from '../components/shop/NotifyButton';
+import ShopHeader from '../components/shop/ShopHeader';
 import { Link, useNavigate } from 'react-router-dom';
 import LandingFooter from '../components/layout/LandingFooter';
 import { themes, defaultThemeName } from '../theme/themes';
@@ -12,7 +12,6 @@ import { useCart } from '../context/CartContext';
 import { useShopProducts, getProductsByCategory } from '../config/plannerProducts';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
-import logo from '../assets/tpp_logo.png';
 import { usePageSEO } from '../utils/pageSEO';
 import useShopPageView from '../utils/useShopPageView';
 import { trackShopCheckoutStarted } from '../services/shopAnalytics';
@@ -23,193 +22,6 @@ const theme = themes[defaultThemeName];
 
 // Warm cream background — must match the cream baked into the product photos exactly
 const SHOP_BG = '#f0eee7';
-
-const NAV_LINKS = [['/', 'THE APP'], ['/shop', 'SHOP'], ['/pricing', 'PRICING'], ['/faq', 'FAQ']];
-const SHOP_SUB_LINKS = [
-  ['/shop', 'Shop All'],
-  ['/shop/reviews', 'Reviews'],
-  ['/shop/custom', 'Custom Orders'],
-  ['/shop/wholesale', 'Bulk & Wholesale'],
-  ['/shop/group-discounts', 'Group Discounts'],
-  ['/shop/vault', 'The Vault'],
-];
-
-// â”€â”€â”€ Shop Header (logo left Â· nav center Â· LOGIN CART right) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function ShopHeader({ cartCount, onCartOpen }) {
-  const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const navLinks = NAV_LINKS;
-
-  return (
-    <>
-      <header className="sticky top-0 z-[105] bg-white border-b" style={{ borderColor: '#DDE6DE' }}>
-        <div className="w-full px-5 md:max-w-7xl md:mx-auto">
-
-          {/* Mobile row */}
-          <div className="flex lg:hidden items-center justify-between h-[60px]">
-            <button
-              onClick={() => setMobileOpen(o => !o)}
-              aria-label="Menu"
-              className="flex flex-col justify-center gap-[6px] w-9 h-9"
-            >
-              <span style={{ display:'block', width:20, height:1.5, borderRadius:1, backgroundColor:theme.text,
-                transform: mobileOpen ? 'translateY(3.75px) rotate(45deg)' : 'none', transition:'transform 0.2s' }} />
-              <span style={{ display:'block', width:20, height:1.5, borderRadius:1, backgroundColor:theme.text,
-                transform: mobileOpen ? 'translateY(-3.75px) rotate(-45deg)' : 'none', transition:'transform 0.2s' }} />
-            </button>
-
-            <button onClick={() => navigate('/')} className="absolute left-1/2 -translate-x-1/2">
-              <img src={logo} alt="The Pep Planner" className="h-11 w-11 object-contain"
-                style={{ filter:'drop-shadow(0 2px 6px rgba(0,0,0,0.12))' }} />
-            </button>
-
-            <div className="flex items-center gap-1">
-              <button onClick={() => navigate('/login')} className="p-2" style={{ color: theme.textLight }}>
-                <UserCircle size={22} weight="duotone" className="pointer-events-none" />
-              </button>
-              <button onClick={onCartOpen} className="relative p-2" style={{ color: theme.text }}>
-                <Bag size={22} weight="duotone" className="pointer-events-none" />
-                {cartCount > 0 && (
-                  <CartBadge count={cartCount} className="absolute -top-0.5 -right-0.5 pointer-events-none" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Desktop row */}
-          <div className="hidden lg:flex items-center h-[68px] relative">
-            <div className="flex items-center gap-4 flex-shrink-0 mr-8">
-              <button
-                type="button"
-                onClick={() => navigate('/login')}
-                aria-label="Log in to your account"
-                className="p-2 rounded-lg transition-opacity hover:opacity-70"
-                style={{ color: theme.primary }}
-              >
-                <UserCircle size={28} weight="duotone" />
-              </button>
-              <button onClick={() => navigate('/')} className="flex-shrink-0">
-                <img src={logo} alt="The Pep Planner" className="h-[52px] w-[52px] object-contain"
-                  style={{ filter:'drop-shadow(0 3px 8px rgba(0,0,0,0.13))' }} />
-              </button>
-            </div>
-
-            {/* Nav — center */}
-            <nav className="flex items-center gap-5 flex-1">
-              {navLinks.map(([path, label]) => (
-                <Link key={path} to={path}
-                  className="public-nav-link px-3 py-2 rounded-lg text-[11px] font-bold tracking-[0.13em] uppercase"
-                  style={{ color: theme.text }}>
-                  {label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Right — cart */}
-            <div className="flex items-center gap-5">
-              <button onClick={onCartOpen}
-                className="relative flex items-center gap-2 text-[11px] font-bold tracking-[0.13em] uppercase transition-opacity hover:opacity-70"
-                style={{ color: theme.text }}>
-                <Bag size={20} weight="duotone" className="pointer-events-none" />
-                CART
-                {cartCount > 0 && (
-                  <CartBadge count={cartCount} className="absolute -top-1.5 left-3.5 pointer-events-none" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Mobile drawer */}
-      <>
-          <div
-            className="fixed inset-0 top-[60px] z-[103] lg:hidden transition-opacity duration-300"
-            style={{ backgroundColor: 'rgba(0,0,0,0.2)', opacity: mobileOpen ? 1 : 0, pointerEvents: mobileOpen ? 'auto' : 'none' }}
-            onClick={() => setMobileOpen(false)}
-          />
-          <div
-            className="fixed top-[60px] left-0 bottom-0 z-[104] w-[280px] bg-white shadow-2xl flex flex-col lg:hidden"
-            style={{ transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)' }}
-          >
-            <nav className="flex-1 py-6 px-4 overflow-y-auto">
-              {/* The App */}
-              <div className="px-4 mb-4">
-                <p
-                  className="text-sm uppercase"
-                  style={{
-                    color: theme.textLight,
-                    fontFamily: 'Poppins, system-ui, sans-serif',
-                    fontWeight: 300,
-                    letterSpacing: '0.18em',
-                  }}
-                >
-                  The App
-                </p>
-                <div
-                  className="mt-2.5"
-                  style={{ width: 32, height: 1.5, borderRadius: 1, backgroundColor: theme.primary, opacity: 0.55 }}
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="space-y-1 mb-8">
-                {navLinks.map(([path, label]) => (
-                  <Link key={path} to={path} onClick={() => setMobileOpen(false)}
-                    className="public-nav-link block px-4 py-3.5 text-sm font-bold tracking-[0.12em] uppercase rounded-lg"
-                    style={{ color: theme.text }}>
-                    {label}
-                  </Link>
-                ))}
-              </div>
-              {/* Paper Planners */}
-              <div className="border-t pt-7" style={{ borderColor: `${theme.text}12` }}>
-                <div className="px-4 mb-4">
-                  <p
-                    className="text-sm uppercase"
-                    style={{
-                      color: theme.textLight,
-                      fontFamily: 'Poppins, system-ui, sans-serif',
-                      fontWeight: 300,
-                      letterSpacing: '0.18em',
-                    }}
-                  >
-                    Paper Planners
-                  </p>
-                  <div
-                    className="mt-2.5"
-                    style={{ width: 32, height: 1.5, borderRadius: 1, backgroundColor: theme.primary, opacity: 0.55 }}
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="space-y-1">
-                  {SHOP_SUB_LINKS.map(([path, label]) => (
-                    <Link key={path} to={path} onClick={() => setMobileOpen(false)}
-                      className="public-nav-link block px-4 py-3.5 text-sm font-bold tracking-[0.12em] uppercase rounded-lg"
-                      style={{ color: theme.text }}>
-                      {label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </nav>
-            <div className="px-4 py-4 border-t flex gap-2.5" style={{ borderColor: theme.border }}>
-              <button onClick={() => { setMobileOpen(false); navigate('/login?trial=true'); }}
-                className="flex-1 py-3 rounded-lg text-xs font-bold tracking-[0.12em] uppercase text-white"
-                style={{ backgroundColor: theme.primary, boxShadow: '0 2px 8px rgba(95,127,118,0.35), inset 0 1px 0 rgba(255,255,255,0.15)' }}>
-                Sign Up
-              </button>
-              <button onClick={() => { setMobileOpen(false); navigate('/login'); }}
-                className="flex-1 py-3 rounded-lg text-xs font-bold tracking-[0.12em] uppercase border"
-                style={{ color: theme.primary, borderColor: theme.primary, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                Log In
-              </button>
-            </div>
-          </div>
-        </>
-      </>
-  );
-}
 
 const ADDED_CHIP_KEYFRAMES = `
 @keyframes chipFloat {
@@ -646,30 +458,48 @@ export default function Shop() {
     <div className="min-h-screen" style={{ backgroundColor: SHOP_BG }}>
       <ShopHeader cartCount={cartCount} onCartOpen={() => setCartOpen(true)} />
 
-      {/* Category nav bar — tight, all caps, minimal */}
+      {/* Category toggle */}
       <div className="sticky top-[60px] lg:top-[68px] z-40 bg-white border-b" style={{ borderColor: '#DDE6DE' }}>
-        <div className="max-w-6xl mx-auto px-5 flex items-center h-11">
-          <div className="flex items-center gap-0">
+        <div className="max-w-6xl mx-auto px-4 sm:px-5 flex items-center justify-center h-14">
+          <div
+            className="inline-flex p-1 rounded-xl border w-full max-w-md sm:max-w-lg"
+            role="tablist"
+            aria-label="Shop categories"
+            style={{ backgroundColor: '#EFF2EE', borderColor: '#DDE6DE' }}
+          >
             {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
               const active = activeCategory === key;
               return (
-                <button key={key}
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
                   onClick={() => setActiveCategory(key)}
-                  className="px-4 h-11 text-[10px] font-bold tracking-[0.15em] uppercase transition-all whitespace-nowrap border-b-2"
-                  style={active
-                    ? { color: theme.text, borderBottomColor: theme.text }
-                    : { color: '#9B958D', borderBottomColor: 'transparent' }}>
+                  className="flex-1 py-2 px-1 sm:px-2 rounded-lg text-[10px] sm:text-[11px] font-bold tracking-[0.12em] uppercase whitespace-nowrap transition-all duration-200"
+                  style={
+                    active
+                      ? {
+                          color: '#FFFFFF',
+                          backgroundColor: '#7F9E95',
+                          boxShadow: '0 1px 4px rgba(47,59,58,0.14)',
+                        }
+                      : {
+                          color: '#6B7D7A',
+                          backgroundColor: 'transparent',
+                        }
+                  }
+                >
                   {label}
                 </button>
               );
             })}
           </div>
-
         </div>
       </div>
 
       {/* Product grid — no card borders, products "float" on cream bg */}
-      <main className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-10 pb-28">
+      <main className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-8 pb-10">
         {productsLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
             {[1,2,3,4,5,6,7,8].map(n => <ProductSkeleton key={n} />)}

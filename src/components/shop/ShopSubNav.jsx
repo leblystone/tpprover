@@ -4,13 +4,9 @@ import { themes, defaultThemeName } from '../../theme/themes';
 
 const theme = themes[defaultThemeName];
 
-const LINKS = [
-  ['/shop', 'Shop All'],
-  ['/shop/custom', 'Custom Orders'],
-  ['/shop/wholesale', 'Bulk & Wholesale'],
-  ['/shop/group-discounts', 'Group Discounts'],
-  ['/shop/vault', 'The Vault'],
-];
+import { PAPER_PLANNER_LINKS } from '../../config/publicNavConfig';
+
+const LINKS = PAPER_PLANNER_LINKS.map(({ path, label }) => [path, label]);
 
 export default function ShopSubNav() {
   return (

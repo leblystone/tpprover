@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, startTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Apple, Play as LucidePlay } from 'lucide-react';
 import {
   IconContext,
@@ -36,10 +36,7 @@ import LandingFooter from '../components/layout/LandingFooter';
 import LandingHeader from '../components/layout/LandingHeader';
 import { isNative, isPWAInstalled, isIOS, APP_STORE_IOS_URL } from '../utils/platform';
 import { usePageSEO } from '../utils/pageSEO';
-import { COVERS } from '../data/products';
-
-/** Set true to show paper planner shop carousel + bottom “Shop Now” CTA again */
-const SHOW_LANDING_PAPER_PLANNERS_SHOP = false;
+import { LANDING_CAROUSEL_COVERS } from '../data/landingCarouselCovers';
 
 const LANDING_PAGE_BG = '#D7E0D9';
 /** Paper Pep Planners — light warm greige section wash */
@@ -78,21 +75,21 @@ function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-bold flex items-center gap-2 truncate" style={{ color: textColor }}>
             Today's Research
+            <CheckSquareOffset className="w-5 h-5 flex-shrink-0" weight="duotone" style={{ color: '#7F9E95' }} />
           </h3>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setDarkMode((d) => !d)}
-              className="w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
               style={{
                 backgroundColor: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(47,59,58,0.06)',
                 color: darkMode ? '#FFD166' : '#2F3B3A',
               }}
               aria-label="Toggle dark mode"
             >
-              {darkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              {darkMode ? <Sun className="w-5 h-5" weight="duotone" /> : <Moon className="w-5 h-5" weight="duotone" />}
             </button>
-            <CheckSquareOffset className="w-4 h-4 flex-shrink-0" style={{ color: '#7F9E95' }} />
           </div>
         </div>
       </div>
@@ -117,14 +114,21 @@ function TodaysResearchCard({ darkMode, setDarkMode, checkedState, toggleCheck }
                 </div>
               </div>
               <div
-                className={`text-right flex items-center gap-1.5 flex-shrink-0 ${checkedState[id] ? 'line-through decoration-2' : ''}`}
+                className={`text-right flex items-center gap-2 flex-shrink-0 ${checkedState[id] ? 'line-through decoration-2' : ''}`}
                 style={{ color: checkedState[id] ? subColor : undefined }}
               >
                 <span className="font-medium text-xs whitespace-nowrap" style={{ color: subColor }}>{dose}</span>
                 {dotColor && (
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor, opacity: checkedState[id] ? 0.5 : 1 }} />
                 )}
-                <Icon className="w-3.5 h-3.5" weight="duotone" style={{ color: subColor, opacity: checkedState[id] ? 0.5 : 1 }} />
+                <Icon
+                  className="w-5 h-5"
+                  weight="duotone"
+                  style={{
+                    color: subColor,
+                    opacity: checkedState[id] ? 0.55 : 1,
+                  }}
+                />
                 <button
                   type="button"
                   onClick={() => toggleCheck(id)}
@@ -765,11 +769,19 @@ function ShopCarousel({ covers }) {
 
   useEffect(() => {
     if (total < 2 || paused) return;
-    timerRef.current = setInterval(() => setActive((a) => (a + 1) % total), 3200);
+    timerRef.current = setInterval(() => setActive((a) => (a + 1) % total), 3800);
     return () => clearInterval(timerRef.current);
   }, [total, paused]);
 
-  const go = (idx) => setActive((idx + total) % total);
+  const go = (idx) => setActive(((idx % total) + total) % total);
+
+  /** Shortest circular offset from active → i (−floor(n/2) … +floor(n/2)) */
+  const relativeOffset = (i) => {
+    let offset = i - active;
+    if (offset > Math.floor(total / 2)) offset -= total;
+    if (offset < -Math.floor(total / 2)) offset += total;
+    return offset;
+  };
 
   return (
     <div
@@ -777,90 +789,89 @@ function ShopCarousel({ covers }) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Carousel track */}
-      <div className="flex items-end justify-center gap-4 px-4" style={{ height: 260 }}>
-        {[-2, -1, 0, 1, 2].map((offset) => {
-          const idx = (active + offset + total) % total;
+      <div className="relative w-full overflow-hidden" style={{ height: 340 }}>
+        {items.map((src, i) => {
+          const offset = relativeOffset(i);
+          const abs = Math.abs(offset);
+          if (abs > 2) return null;
+
           const isCenter = offset === 0;
-          const isSide1 = Math.abs(offset) === 1;
+          const isSide1 = abs === 1;
+          const scale = isCenter ? 1 : isSide1 ? 0.78 : 0.58;
+          const translateX = offset * 140;
+          const translateY = isCenter ? 0 : isSide1 ? 14 : 28;
+          const opacity = isCenter ? 1 : isSide1 ? 0.7 : 0.35;
+
           return (
             <button
-              key={offset}
+              key={i}
               type="button"
-              onClick={() => go(idx)}
-              className="flex-shrink-0 transition-all duration-500 cursor-pointer"
+              onClick={() => go(i)}
+              aria-label={`Planner cover ${i + 1}`}
+              aria-current={isCenter ? 'true' : undefined}
+              className="absolute left-1/2 bottom-1 cursor-pointer border-0 bg-transparent p-0 outline-none"
               style={{
-                transform: isCenter
-                  ? 'scale(1) translateY(0)'
-                  : isSide1
-                  ? `scale(0.75) translateY(16px)`
-                  : `scale(0.55) translateY(32px)`,
-                opacity: isCenter ? 1 : isSide1 ? 0.6 : 0.3,
-                zIndex: isCenter ? 10 : isSide1 ? 5 : 1,
-                outline: 'none',
-                background: 'transparent',
-                border: 'none',
-                padding: 0,
-                margin: 0,
+                transform: `translateX(calc(-50% + ${translateX}px)) translateY(${translateY}px) scale(${scale})`,
+                transformOrigin: 'bottom center',
+                opacity,
+                zIndex: 10 - abs,
+                transition:
+                  'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
+                willChange: 'transform, opacity',
               }}
             >
-              <span
-                className="inline-block rounded-lg align-bottom"
+              <img
+                src={src}
+                alt={`Planner cover ${i + 1}`}
+                draggable={false}
+                className="rounded-lg block pointer-events-none"
                 style={{
-                  backgroundColor: PHYSICAL_PLANNERS_SURFACE,
-                  lineHeight: 0,
-                  verticalAlign: 'bottom',
+                  height: 310,
+                  width: 'auto',
+                  objectFit: 'contain',
+                  filter: isCenter
+                    ? 'drop-shadow(0 10px 28px rgba(47,59,58,0.22))'
+                    : 'drop-shadow(0 4px 12px rgba(47,59,58,0.08))',
+                  transition: 'filter 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
-              >
-                <img
-                  src={items[idx]}
-                  alt={`Planner cover ${idx + 1}`}
-                  className="rounded-lg block"
-                  style={{
-                    height: isCenter ? 220 : isSide1 ? 180 : 150,
-                    width: 'auto',
-                    maxWidth: isCenter ? 160 : isSide1 ? 120 : 100,
-                    objectFit: 'cover',
-                    filter: isCenter ? 'drop-shadow(0 8px 24px rgba(0,0,0,0.18))' : 'none',
-                    transition: 'all 0.5s cubic-bezier(0.4,0,0.2,1)',
-                  }}
-                />
-              </span>
+              />
             </button>
           );
         })}
       </div>
 
-      {/* Prev / Next */}
       <button
         type="button"
         onClick={() => go(active - 1)}
-        className="absolute left-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
-        style={{ backgroundColor: 'rgba(255,255,255,0.85)', color: '#2F3B3A', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+        aria-label="Previous cover"
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 z-20"
+        style={{ backgroundColor: 'rgba(255,255,255,0.92)', color: '#2F3B3A', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}
       >
         <CaretLeft className="w-4 h-4" />
       </button>
       <button
         type="button"
         onClick={() => go(active + 1)}
-        className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-110"
-        style={{ backgroundColor: 'rgba(255,255,255,0.85)', color: '#2F3B3A', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+        aria-label="Next cover"
+        className="absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 z-20"
+        style={{ backgroundColor: 'rgba(255,255,255,0.92)', color: '#2F3B3A', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}
       >
         <CaretRight className="w-4 h-4" />
       </button>
 
-      {/* Dots */}
       <div className="flex justify-center gap-1.5 mt-4">
         {items.map((_, i) => (
           <button
             key={i}
             type="button"
             onClick={() => go(i)}
-            className="rounded-full transition-all duration-300"
+            aria-label={`Go to cover ${i + 1}`}
+            className="rounded-full"
             style={{
               width: active === i ? 20 : 6,
               height: 6,
               backgroundColor: active === i ? '#7F9E95' : 'rgba(127,158,149,0.3)',
+              transition: 'width 0.35s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.35s ease',
             }}
           />
         ))}
@@ -875,9 +886,15 @@ export default function Landing() {
   const navigate = useNavigate();
   const [showContact, setShowContact] = useState(false);
   const [showIOSPopup, setShowIOSPopup] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [checkedState, setCheckedState] = useState({ b12: false, glow: false, nad: false });
-  const toggleCheck = (id) => setCheckedState((prev) => ({ ...prev, [id]: !prev[id] }));
+  const [productFocus, setProductFocus] = useState('app'); // 'app' | 'planners'
+  const demoPausedRef = useRef(false);
+  const toggleCheck = (id) => {
+    demoPausedRef.current = true; // stop auto-demo once the visitor interacts
+    setCheckedState((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+  const showPlanners = productFocus === 'planners';
 
   useEffect(() => {
     document.body.classList.add('landing-page');
@@ -885,6 +902,33 @@ export default function Landing() {
     return () => {
       document.body.classList.remove('landing-page');
       document.documentElement.classList.remove('landing-page-active');
+    };
+  }, []);
+
+  /* Auto-demo: check off research items so visitors see the card is interactive */
+  useEffect(() => {
+    const ids = ['b12', 'glow', 'nad'];
+    let cancelled = false;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    const run = async () => {
+      await sleep(1600);
+      while (!cancelled && !demoPausedRef.current) {
+        for (const id of ids) {
+          if (cancelled || demoPausedRef.current) return;
+          setCheckedState((prev) => ({ ...prev, [id]: true }));
+          await sleep(850);
+        }
+        await sleep(1400);
+        if (cancelled || demoPausedRef.current) return;
+        setCheckedState({ b12: false, glow: false, nad: false });
+        await sleep(1600);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -904,11 +948,17 @@ export default function Landing() {
     { icon: MapPin, title: 'Vendors', description: 'Domestic, International or GB vendor info at your fingertips! Never lose your contact again.' },
   ];
 
-  const carouselCovers = SHOW_LANDING_PAPER_PLANNERS_SHOP ? COVERS.filter(Boolean).slice(0, 9) : [];
+  const carouselCovers = LANDING_CAROUSEL_COVERS.filter(Boolean);
 
   return (
     <IconContext.Provider value={{ weight: 'duotone' }}>
     <div className="min-h-screen landing-page-root" style={{ backgroundColor: LANDING_PAGE_BG, fontFamily: 'Poppins, sans-serif' }}>
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       <LandingHeader />
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
@@ -968,126 +1018,148 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── THE APP ─────────────────────────────────── */}
+      {/* ── THE APP / PAPER PLANNERS (toggled card) ─────────────────────── */}
       <section className="py-12 md:py-14 lg:py-16" style={{ backgroundColor: '#FFFFFF' }}>
         <div className="w-full px-4 md:max-w-4xl lg:max-w-5xl md:mx-auto md:px-8 xl:px-10">
+
+          <div className="text-center mb-4 lg:mb-5 flex flex-col items-center">
+            <h2
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight"
+              style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}
+            >
+              Two ways, <span style={{ color: '#7F9E95' }}>to organize.</span>
+            </h2>
+          </div>
+
+          {/* Product chooser — icon buttons, not a pill switch */}
+          <div
+            className="flex justify-center gap-3 sm:gap-4 mb-6"
+            role="tablist"
+            aria-label="Choose product"
+          >
+            {[
+              { id: 'app', label: 'The App', Icon: Desktop, active: !showPlanners },
+              { id: 'planners', label: 'Paper Planners', Icon: BookOpen, active: showPlanners },
+            ].map(({ id, label, Icon, active }) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setProductFocus(id)}
+                className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 px-5 sm:px-7 py-3 sm:py-3.5 rounded-2xl text-xs sm:text-sm font-bold tracking-[0.12em] uppercase transition-all duration-200 min-w-[140px] sm:min-w-[180px]"
+                style={
+                  active
+                    ? {
+                        color: '#FFFFFF',
+                        backgroundColor: '#7F9E95',
+                        border: '1.5px solid #7F9E95',
+                        boxShadow: '0 4px 14px rgba(127,158,149,0.35)',
+                      }
+                    : {
+                        color: '#6B7D7A',
+                        backgroundColor: '#FFFFFF',
+                        border: '1.5px solid #DDE6DE',
+                        boxShadow: 'none',
+                      }
+                }
+              >
+                <Icon className="w-5 h-5" weight={active ? 'fill' : 'duotone'} />
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="rounded-3xl p-8 md:p-10 lg:p-12 xl:p-14 text-center border relative overflow-hidden" style={{ borderColor: '#DDE6DE', backgroundColor: '#EFF2EE' }}>
             {/* Subtle background decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 rounded-full mix-blend-multiply filter blur-3xl opacity-30" style={{ backgroundColor: '#7F9E95', transform: 'translate(30%, -30%)' }} />
             <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full mix-blend-multiply filter blur-3xl opacity-20" style={{ backgroundColor: '#D5E0DC', transform: 'translate(-20%, 20%)' }} />
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Desktop className="w-5 h-5" style={{ color: '#7F9E95' }} />
-                <h3 className="text-sm font-bold tracking-widest uppercase" style={{ color: '#7F9E95', letterSpacing: '0.15em' }}>The App</h3>
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-3" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-                Take your research anywhere.
-              </h2>
-              <p className="text-sm md:text-base lg:text-lg mb-8 max-w-lg lg:max-w-2xl mx-auto leading-relaxed" style={{ color: '#6B7D7A' }}>
-                Track doses, monitor washouts, and manage your stockpile on iOS and Android. Your account syncs seamlessly across all devices.
-              </p>
 
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex gap-2 justify-center flex-wrap">
-                  <a
-                    href={APP_STORE_IOS_URL}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5 shadow-sm"
-                    style={{ backgroundColor: '#1a1a1a', minWidth: 125 }}
-                    target="_blank" rel="noopener noreferrer"
-                  >
-                    <Apple className="w-4 h-4 text-white flex-shrink-0" />
-                    <div className="text-white leading-tight text-left">
-                      <div className="text-[8px] font-normal opacity-80">Download on the</div>
-                      <div className="text-[11px] font-semibold">App Store</div>
+            <div className="relative z-10 animate-[fadeInUp_0.4s_ease-out]" key={productFocus} role="tabpanel">
+              {!showPlanners ? (
+                <>
+                  <h2 className="text-3xl sm:text-4xl font-bold mb-3" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+                    Take your research anywhere.
+                  </h2>
+                  <p className="text-sm md:text-base lg:text-lg mb-8 max-w-lg lg:max-w-2xl mx-auto leading-relaxed" style={{ color: '#6B7D7A' }}>
+                    Track doses, monitor washouts, and manage your stockpile on iOS and Android. Your account syncs seamlessly across all devices.
+                  </p>
+
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="flex gap-2 justify-center flex-wrap">
+                      <a
+                        href={APP_STORE_IOS_URL}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5 shadow-sm"
+                        style={{ backgroundColor: '#1a1a1a', minWidth: 125 }}
+                        target="_blank" rel="noopener noreferrer"
+                      >
+                        <Apple className="w-4 h-4 text-white flex-shrink-0" />
+                        <div className="text-white leading-tight text-left">
+                          <div className="text-[8px] font-normal opacity-80">Download on the</div>
+                          <div className="text-[11px] font-semibold">App Store</div>
+                        </div>
+                      </a>
+                      {!isIOS() && (
+                        <a
+                          href="https://play.google.com/store/apps/details?id=com.thepepplanner.app"
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5 shadow-sm"
+                          style={{ backgroundColor: '#1a1a1a', minWidth: 125 }}
+                          target="_blank" rel="noopener noreferrer"
+                        >
+                          <LucidePlay className="w-4 h-4 text-white flex-shrink-0" />
+                          <div className="text-white leading-tight text-left">
+                            <div className="text-[8px] font-normal opacity-80">GET IT ON</div>
+                            <div className="text-[11px] font-semibold">Google Play</div>
+                          </div>
+                        </a>
+                      )}
                     </div>
-                  </a>
-                  {!isIOS() && (
-                    <a
-                      href="https://play.google.com/store/apps/details?id=com.thepepplanner.app"
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:opacity-90 hover:-translate-y-0.5 shadow-sm"
-                      style={{ backgroundColor: '#1a1a1a', minWidth: 125 }}
-                      target="_blank" rel="noopener noreferrer"
+                    <button
+                      onClick={handleSignIn}
+                      className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+                      style={{ color: '#6B7D7A' }}
                     >
-                      <LucidePlay className="w-4 h-4 text-white flex-shrink-0" />
-                      <div className="text-white leading-tight text-left">
-                        <div className="text-[8px] font-normal opacity-80">GET IT ON</div>
-                        <div className="text-[11px] font-semibold">Google Play</div>
-                      </div>
-                    </a>
-                  )}
-                </div>
-                <button
-                  onClick={handleSignIn}
-                  className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
-                  style={{ color: '#6B7D7A' }}
-                >
-                  Or sign in on the web →
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {SHOW_LANDING_PAPER_PLANNERS_SHOP && (
-      <section className="py-16 md:py-24" style={{ backgroundColor: PAPER_PLANNERS_BG }}>
-        <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8">
-          <div
-            className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 w-full rounded-3xl px-6 py-10 md:px-11 md:py-12 lg:gap-16"
-            style={{
-              backgroundColor: PHYSICAL_PLANNERS_SURFACE,
-              boxShadow:
-                'inset 0 0 0 1px rgba(127, 158, 149, 0.14), 0 4px 14px rgba(47, 59, 58, 0.06), 0 14px 40px rgba(47, 59, 58, 0.1)',
-            }}
-          >
-            
-            {/* Left Typography */}
-            <div className="lg:w-1/3 text-center lg:text-left flex flex-col items-center lg:items-start relative z-10">
-              <div className="flex items-center gap-2 mb-4 justify-center lg:justify-start">
-                <BookOpen className="w-5 h-5" style={{ color: '#7F9E95' }} />
-                <span className="text-xs font-bold tracking-[0.2em]" style={{ color: '#7F9E95' }}>Paper Pep Planners</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-5 leading-tight" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-                For the desk.<br />Built for research.
-              </h2>
-              <p className="text-sm md:text-base leading-relaxed mb-8 max-w-sm" style={{ color: '#6B7D7A' }}>
-                Dedicated pages for protocols, reconstitution dates, stockpile notes, and daily tracking. Multiple cover designs and sizes to fit your style.
-              </p>
-              
-              <a
-                href="https://thepepplanner.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-1 shadow-lg hover:shadow-xl group"
-                style={{ backgroundColor: '#2F3B3A' }}
-              >
-                Shop the Collection
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </a>
-            </div>
-
-            {/* Right Carousel */}
-            <div className="lg:w-2/3 w-full">
-              {carouselCovers.length > 0 ? (
-                <div className="py-4 md:py-8 relative w-full overflow-hidden">
-                   <ShopCarousel covers={carouselCovers} />
-                </div>
+                      Or sign in on the web →
+                    </button>
+                  </div>
+                </>
               ) : (
-                <div className="text-center py-12 rounded-2xl border" style={{ borderColor: '#DDE6DE', backgroundColor: PHYSICAL_PLANNERS_SURFACE }}>
-                  <p className="text-sm" style={{ color: '#6B7D7A' }}>Drop your cover images into src/assets/ to see the carousel.</p>
-                </div>
+                <>
+                  <h2 className="text-3xl sm:text-4xl font-bold mb-3" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+                    For the research lab.
+                  </h2>
+                  <p className="text-sm md:text-base lg:text-lg mb-8 max-w-lg lg:max-w-2xl mx-auto leading-relaxed" style={{ color: '#6B7D7A' }}>
+                    Dedicated pages for protocols, reconstitution dates, stockpile notes, and daily tracking. Multiple cover designs and sizes to fit your style.
+                  </p>
+
+                  <div className="flex flex-col items-center gap-4">
+                    <Link
+                      to="/shop"
+                      className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 shadow-lg hover:shadow-xl group"
+                      style={{ backgroundColor: '#2F3B3A' }}
+                    >
+                      Shop the Collection
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                    <Link
+                      to="/shop/reviews"
+                      className="text-xs font-medium underline underline-offset-2 transition-opacity hover:opacity-70"
+                      style={{ color: '#6B7D7A' }}
+                    >
+                      Read customer reviews →
+                    </Link>
+                  </div>
+                </>
               )}
             </div>
-
           </div>
+
         </div>
       </section>
-      )}
 
-      {/* ── SEE IT IN ACTION — Interactive Widgets ───────────────────────── */}
-      <section className="py-12 md:py-14 lg:py-16" style={{ backgroundColor: SEE_IT_IN_ACTION_BG }}>
+      {/* Showcase swaps with product toggle — App demos vs Planners visuals */}
+      {!showPlanners ? (
+      <section key="app-showcase" className="py-12 md:py-14 lg:py-16 animate-[fadeInUp_0.4s_ease-out]" style={{ backgroundColor: SEE_IT_IN_ACTION_BG }}>
         <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8 xl:px-10">
           <div className="text-center mb-8 lg:mb-10">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
@@ -1098,17 +1170,95 @@ export default function Landing() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:gap-6 lg:gap-8 xl:gap-10 items-stretch lg:items-start max-w-6xl xl:max-w-none mx-auto">
-            {/* Half-Life Washout */}
             <WashoutFlowGraphWidget />
-            {/* Peptide Calculator */}
             <ReconstitutionMathWidget />
-            {/* Titration Phases — full-width bottom row on all screen sizes */}
             <div className="col-span-2 w-full max-w-5xl mx-auto">
               <TitrationPhasesWidget />
             </div>
           </div>
         </div>
       </section>
+      ) : (
+      <section key="planners-showcase" className="py-12 md:py-14 lg:py-16 animate-[fadeInUp_0.4s_ease-out]" style={{ backgroundColor: SEE_IT_IN_ACTION_BG }}>
+        <div className="w-full px-4 md:max-w-7xl md:mx-auto md:px-8 xl:px-10">
+          <div
+            className="rounded-3xl px-4 pt-6 pb-8 md:px-10 md:pt-8 md:pb-10 mb-8 lg:mb-10"
+            style={{
+              backgroundColor: PHYSICAL_PLANNERS_SURFACE,
+              boxShadow:
+                'inset 0 0 0 1px rgba(127, 158, 149, 0.14), 0 4px 14px rgba(47, 59, 58, 0.06), 0 14px 40px rgba(47, 59, 58, 0.1)',
+            }}
+          >
+            <div className="text-center mb-3 md:mb-4">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
+                Give your research its own style.
+              </h2>
+              <p className="text-sm lg:text-base max-w-xl lg:max-w-2xl mx-auto leading-relaxed" style={{ color: '#6B7D7A' }}>
+                New covers drop often — pick yours.
+              </p>
+            </div>
+
+            {carouselCovers.length > 0 ? (
+              <ShopCarousel covers={carouselCovers} />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-sm" style={{ color: '#6B7D7A' }}>Cover images loading…</p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 max-w-5xl mx-auto mb-8">
+            {[
+              {
+                icon: CalendarDots,
+                title: 'Protocol pages',
+                desc: 'Multi-phase schedules laid out on paper — same structure you know from the app.',
+              },
+              {
+                icon: Syringe,
+                title: 'Recon & doses',
+                desc: 'Space for reconstitution dates, concentrations, and daily dose logs.',
+              },
+              {
+                icon: Package,
+                title: 'Stockpile notes',
+                desc: 'Track vials, leftovers, and orders without digging through spreadsheets.',
+              },
+            ].map(({ icon: Icon, title, desc }) => (
+              <div
+                key={title}
+                className="rounded-2xl p-5 md:p-6 text-center"
+                style={{
+                  backgroundColor: PHYSICAL_PLANNERS_SURFACE,
+                  border: '1px solid #DDE6DE',
+                  boxShadow: '0 4px 14px rgba(47, 59, 58, 0.06)',
+                }}
+              >
+                <div
+                  className="w-11 h-11 mx-auto mb-3 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: '#EFF2EE' }}
+                >
+                  <Icon className="w-5 h-5" style={{ color: '#7F9E95' }} />
+                </div>
+                <h3 className="text-sm font-bold mb-1.5" style={{ color: '#2F3B3A' }}>{title}</h3>
+                <p className="text-xs leading-relaxed" style={{ color: '#6B7D7A' }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-center">
+            <Link
+              to="/shop"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 shadow-lg hover:shadow-xl group"
+              style={{ backgroundColor: '#2F3B3A' }}
+            >
+              Browse all planners
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </div>
+      </section>
+      )}
 
       {/* ── FEATURES ─────────────────────────────────────────────────────── */}
       <section className="py-8 md:py-10 lg:py-12" style={{ backgroundColor: TOOLKIT_BG }}>
@@ -1120,11 +1270,6 @@ export default function Landing() {
             </h2>
           </div>
 
-          <div className="text-center mb-6">
-            <h3 className="text-base sm:text-xl font-semibold" style={{ color: '#2F3B3A', fontFamily: 'Poppins, sans-serif' }}>
-              Plus the rest of your toolkit:
-            </h3>
-          </div>
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 lg:gap-8 max-w-6xl xl:max-w-none mx-auto">
             {features.map((feature, index) => (
               <div
@@ -1217,17 +1362,13 @@ export default function Landing() {
             >
               Sign Up <PenNib className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            {SHOW_LANDING_PAPER_PLANNERS_SHOP && (
-            <a
-              href="https://thepepplanner.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/shop"
               className="w-full max-w-[280px] sm:w-auto px-6 py-2.5 sm:py-3 rounded-lg text-base sm:text-lg font-semibold border-2 transition-all hover:shadow-xl hover:scale-105 flex items-center justify-center gap-2"
               style={{ borderColor: '#FFFFFF', color: '#FFFFFF', backgroundColor: 'transparent' }}
             >
               Shop Now <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-            </a>
-            )}
+            </Link>
           </div>
         </div>
       </section>
